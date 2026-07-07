@@ -17,32 +17,24 @@ export class ClipboardCollector implements Collector {
     const sessionType = process.env.XDG_SESSION_TYPE || '';
 
     try {
-      let content = '';
-
       if (platform === 'darwin') {
-        // macOS
         const { stdout } = await execAsync('pbpaste');
-        content = stdout.trim();
+        return stdout.trim();
       } else if (platform === 'win32') {
-        // Windows
-        const psScript = `Get-Clipboard`;
-        const { stdout } = await execAsync(`powershell -NoProfile -Command "${psScript}"`);
-        content = stdout.trim();
+        const { stdout } = await execAsync(`powershell -NoProfile -Command "Get-Clipboard"`);
+        return stdout.trim();
       } else if (platform === 'linux') {
-        // Linux
         if (sessionType === 'wayland') {
-          // Wayland
           const { stdout } = await execAsync('wl-paste --no-newline');
-          content = stdout.trim();
+          return stdout.trim();
         } else {
-          // X11
           const { stdout } = await execAsync('xclip -selection clipboard -o');
-          content = stdout.trim();
+          return stdout.trim();
         }
       }
-
-      return content;
-    } catch {
+      return '';
+    } catch (error) {
+      // Silent fail if clipboard is empty
       return '';
     }
   }
@@ -51,18 +43,22 @@ export class ClipboardCollector implements Collector {
     if (this.isRunning) return;
     this.isRunning = true;
     
+    // Changed to 5 seconds as per review
     this.interval = setInterval(async () => {
-      const content = await this.getClipboardContent();
-      
-      if (content && content !== this.lastContent) {
-        this.lastContent = content;
-        await this.memoryService.storeEvent({
-          type: 'CLIPBOARD',
-          content,
-          timestamp: new Date(),
-        });
+      try {
+        const content = await this.getClipboardContent();
+        if (content && content !== this.lastContent) {
+          this.lastContent = content;
+          await this.memoryService.storeEvent({
+            type: 'CLIPBOARD',
+            content,
+            timestamp: new Date(),
+          });
+        }
+      } catch (error) {
+        console.error('[ClipboardCollector] Interval crashed:', error);
       }
-    }, 3000);
+    }, 5000);
   }
 
   stop() {

@@ -19,10 +19,3 @@ model ClipboardHistory {
   content   String
   timestamp DateTime @default(now())
 }
-
-model UserAction {
-  id        Int      @id @default(autoincrement())
-  type      String
-  payload   String
-  timestamp DateTime @default(now())
-}

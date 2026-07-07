@@ -9,7 +9,7 @@ export interface ContextEvent {
 
 export interface ToolCall {
   name: string;
-  args: any;
+  args: Record<string, string | number | boolean>;
 }
 
 export interface LLMResponse {
@@ -17,8 +17,23 @@ export interface LLMResponse {
   toolCalls: ToolCall[];
 }
 
+export interface LLMHistoryMessage {
+  role: 'user' | 'model' | 'function';
+  parts: Array<{ text: string }>;
+}
+
 export interface LLMProvider {
-  generateResponse(prompt: string, context: string, history: any[], tools: any[]): Promise<LLMResponse>;
+  generateResponse(prompt: string, context: string, history: LLMHistoryMessage[], tools: ToolDefinition[]): Promise<LLMResponse>;
+}
+
+export interface ToolDefinition {
+  name: string;
+  description: string;
+  parameters: {
+    type: 'object';
+    properties: Record<string, { type: string; description: string }>;
+    required?: string[];
+  };
 }
 
 export interface Collector {

@@ -1,41 +1,53 @@
-import { PrismaClient } from '@prisma/client';
+// src/memory/MemoryService.ts
+import { prisma } from '../db/prisma';
 import { ContextEvent } from '../types';
 
 export class MemoryService {
-  private prisma = new PrismaClient();
-
   async storeEvent(event: ContextEvent) {
-    if (event.type === 'APP_ACTIVITY') {
-      return this.prisma.appActivity.create({
-        data: { app: event.app!, window: event.window || '' },
-      });
-    }
-    if (event.type === 'CLIPBOARD') {
-      return this.prisma.clipboardHistory.create({
-        data: { content: event.content! },
-      });
+    try {
+      if (event.type === 'APP_ACTIVITY') {
+        await prisma.appActivity.create({
+          data: { app: event.app!, window: event.window || '' },
+        });
+      } else if (event.type === 'CLIPBOARD') {
+        await prisma.clipboardHistory.create({
+          data: { content: event.content! },
+        });
+      }
+    } catch (error) {
+      console.error('[MemoryService] Failed to store event:', error);
     }
   }
 
   async getRecentContext(limit: number = 10) {
-    const apps = await this.prisma.appActivity.findMany({
-      take: limit,
-      orderBy: { timestamp: 'desc' },
-    });
-    const clips = await this.prisma.clipboardHistory.findMany({
-      take: limit,
-      orderBy: { timestamp: 'desc' },
-    });
-    return { recentApps: apps, recentClipboard: clips };
+    try {
+      const apps = await prisma.appActivity.findMany({
+        take: limit,
+        orderBy: { timestamp: 'desc' },
+      });
+      const clips = await prisma.clipboardHistory.findMany({
+        take: limit,
+        orderBy: { timestamp: 'desc' },
+      });
+      return { recentApps: apps, recentClipboard: clips };
+    } catch (error) {
+      console.error('[MemoryService] Failed to fetch recent context:', error);
+      return { recentApps: [], recentClipboard: [] };
+    }
   }
 
   async searchMemory(query: string) {
-    const apps = await this.prisma.appActivity.findMany({
-      where: { window: { contains: query } },
-    });
-    const clips = await this.prisma.clipboardHistory.findMany({
-      where: { content: { contains: query } },
-    });
-    return { apps, clips };
+    try {
+      const apps = await prisma.appActivity.findMany({
+        where: { window: { contains: query } },
+      });
+      const clips = await prisma.clipboardHistory.findMany({
+        where: { content: { contains: query } },
+      });
+      return { apps, clips };
+    } catch (error) {
+      console.error('[MemoryService] Search failed:', error);
+      return { apps: [], clips: [] };
+    }
   }
 }

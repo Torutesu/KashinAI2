@@ -1,18 +1,19 @@
 // src/actions/ActionExecutor.ts
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import path from 'path';
+import os from 'os';
 
 const execAsync = promisify(exec);
 
 export class ActionExecutor {
-  async execute(toolName: string, args: any): Promise<string> {
+  async execute(toolName: string, args: Record<string, string | number | boolean>): Promise<string> {
     try {
       switch (toolName) {
         case 'open_browser_url':
-          return await this.openUrl(args.url);
-        case 'execute_terminal_command':
-          return await this.runCommand(args.command);
-        // Future tools: send_slack_message, create_calendar_event, etc.
+          return await this.openUrl(String(args.url));
+        case 'create_directory':
+          return await this.createDirectory(String(args.path));
         default:
           return `Error: Tool '${toolName}' is not supported.`;
       }
@@ -22,7 +23,9 @@ export class ActionExecutor {
   }
 
   private async openUrl(url: string): Promise<string> {
-    if (!url) return "Error: No URL provided.";
+    if (!url || !url.match(/^https?:\/\//)) {
+      return "Error: Invalid URL. Must start with http:// or https://";
+    }
     
     const platform = process.platform;
     if (platform === 'darwin') await execAsync(`open "${url}"`);
@@ -32,12 +35,25 @@ export class ActionExecutor {
     return `Successfully opened ${url} in the browser.`;
   }
 
-  private async runCommand(command: string): Promise<string> {
-    if (!command) return "Error: No command provided.";
+  // Safe alternative to arbitrary terminal execution
+  private async createDirectory(dirPath: string): Promise<string> {
+    if (!dirPath) return "Error: No path provided.";
     
-    // SECURITY WARNING: In a real app, ask the user for confirmation before running this!
-    const { stdout, stderr } = await execAsync(command);
-    if (stderr) return `Command executed with warnings: ${stderr}`;
-    return `Command executed successfully. Output: ${stdout.substring(0, 500)}`; // Limit output size
+    // Resolve to absolute path and prevent path traversal outside home directory
+    const homeDir = os.homedir();
+    const resolvedPath = path.resolve(homeDir, dirPath);
+    
+    if (!resolvedPath.startsWith(homeDir)) {
+      return "Error: Security violation. Cannot create directories outside your home folder.";
+    }
+
+    const platform = process.platform;
+    if (platform === 'win32') {
+      await execAsync(`powershell -NoProfile -Command "New-Item -ItemType Directory -Force -Path '${resolvedPath}'"`);
+    } else {
+      await execAsync(`mkdir -p "${resolvedPath}"`);
+    }
+    
+    return `Successfully created directory at ${resolvedPath}`;
   }
 }
