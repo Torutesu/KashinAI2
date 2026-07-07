@@ -1,0 +1,28 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model AppActivity {
+  id        Int      @id @default(autoincrement())
+  app       String
+  window    String?
+  timestamp DateTime @default(now())
+}
+
+model ClipboardHistory {
+  id        Int      @id @default(autoincrement())
+  content   String
+  timestamp DateTime @default(now())
+}
+
+model UserAction {
+  id        Int      @id @default(autoincrement())
+  type      String
+  payload   String
+  timestamp DateTime @default(now())
+}
