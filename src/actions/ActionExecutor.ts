@@ -3,17 +3,47 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
 import os from 'os';
+import { SlackIntegration } from '../integrations/SlackIntegration';
+import { GithubIntegration } from '../integrations/GithubIntegration';
+import { GmailIntegration } from '../integrations/GmailIntegration';
+import { CalendarIntegration } from '../integrations/CalendarIntegration';
 
 const execAsync = promisify(exec);
 
 export class ActionExecutor {
+  private slack: SlackIntegration;
+  private github: GithubIntegration;
+  private gmail: GmailIntegration;
+  private calendar: CalendarIntegration;
+
+  constructor() {
+    this.slack = new SlackIntegration();
+    this.github = new GithubIntegration();
+    this.gmail = new GmailIntegration();
+    this.calendar = new CalendarIntegration();
+  }
+
   async execute(toolName: string, args: Record<string, string | number | boolean>): Promise<string> {
     try {
       switch (toolName) {
+        // Local OS Actions
         case 'open_browser_url':
           return await this.openUrl(String(args.url));
         case 'create_directory':
           return await this.createDirectory(String(args.path));
+        case 'open_vscode_file':
+          return await this.openVsCode(String(args.filePath));
+          
+        // Integration Actions
+        case 'send_slack_message':
+          return await this.slack.sendMessage(String(args.channel), String(args.message));
+        case 'create_github_issue':
+          return await this.github.createIssue(String(args.repo), String(args.title), String(args.body || ''));
+        case 'create_gmail_draft':
+          return await this.gmail.createDraft(String(args.to), String(args.subject), String(args.body));
+        case 'create_calendar_event':
+          return await this.calendar.createEvent(String(args.summary), String(args.startTime), String(args.endTime));
+          
         default:
           return `Error: Tool '${toolName}' is not supported.`;
       }
@@ -35,11 +65,9 @@ export class ActionExecutor {
     return `Successfully opened ${url} in the browser.`;
   }
 
-  // Safe alternative to arbitrary terminal execution
   private async createDirectory(dirPath: string): Promise<string> {
     if (!dirPath) return "Error: No path provided.";
     
-    // Resolve to absolute path and prevent path traversal outside home directory
     const homeDir = os.homedir();
     const resolvedPath = path.resolve(homeDir, dirPath);
     
@@ -55,5 +83,15 @@ export class ActionExecutor {
     }
     
     return `Successfully created directory at ${resolvedPath}`;
+  }
+
+  private async openVsCode(filePath: string): Promise<string> {
+    if (!filePath) return "Error: No file path provided.";
+    try {
+      await execAsync(`code "${filePath}"`);
+      return `Successfully opened ${filePath} in VS Code.`;
+    } catch (error) {
+      return `Error opening VS Code. Ensure the 'code' command is installed in your PATH.`;
+    }
   }
 }

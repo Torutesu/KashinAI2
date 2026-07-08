@@ -19,3 +19,32 @@ model ClipboardHistory {
   content   String
   timestamp DateTime @default(now())
 }
+
+model BrowserHistory {
+  id        Int      @id @default(autoincrement())
+  url       String
+  title     String
+  timestamp DateTime @default(now())
+}
+
+model SelectedText {
+  id        Int      @id @default(autoincrement())
+  text      String
+  app       String?
+  timestamp DateTime @default(now())
+}
+
+model SlackMessage {
+  id        Int      @id @default(autoincrement())
+  channel   String
+  message   String
+  timestamp DateTime @default(now())
+}
+
+model CalendarEvent {
+  id        Int      @id @default(autoincrement())
+  title     String
+  startTime DateTime
+  endTime   DateTime?
+  timestamp DateTime @default(now())
+}

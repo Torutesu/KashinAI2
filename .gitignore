@@ -1,5 +1,15 @@
 node_modules
-# Keep environment variables out of version control
+
+# Environment variables
 .env
 
+# Prisma generated files
 /src/generated/prisma
+
+# Google OAuth
+google_credentials.json
+google_token.json
+
+# Local SQLite database
+prisma/dev.db
+*.db
