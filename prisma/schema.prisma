@@ -37,14 +37,28 @@ model SelectedText {
 model SlackMessage {
   id        Int      @id @default(autoincrement())
   channel   String
-  message   String
+  user      String?
+  text      String
   timestamp DateTime @default(now())
 }
 
 model CalendarEvent {
   id        Int      @id @default(autoincrement())
-  title     String
+  summary   String
   startTime DateTime
   endTime   DateTime?
+  timestamp DateTime @default(now())
+}
+
+model VSCodeActivity {
+  id        Int      @id @default(autoincrement())
+  workspace String
+  file      String?
+  timestamp DateTime @default(now())
+}
+
+model ScreenOCR {
+  id        Int      @id @default(autoincrement())
+  text      String
   timestamp DateTime @default(now())
 }

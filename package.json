@@ -28,7 +28,9 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "googleapis": "^173.0.0",
-    "prisma": "^6.16.2"
+    "prisma": "^6.16.2",
+    "screenshot-desktop": "^1.15.4",
+    "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
