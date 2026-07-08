@@ -53,7 +53,7 @@ export class BrowserHistoryCollector implements Collector {
   async start() {
     if (this.isRunning) return;
     this.isRunning = true;
-    console.log('[BrowserCollector] Started.');
+    
 
     this.interval = setInterval(async () => {
       try {
@@ -81,7 +81,7 @@ export class BrowserHistoryCollector implements Collector {
               content: url,
               timestamp: new Date(),
             });
-            console.log(`[BrowserCollector] Stored: ${url}`);
+            
           }
         }
 

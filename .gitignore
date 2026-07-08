@@ -13,3 +13,9 @@ google_token.json
 # Local SQLite database
 prisma/dev.db
 *.db
+
+# Vector Database (LanceDB)
+lancedb/
+
+# Compiled TypeScript output
+dist/

@@ -20,28 +20,30 @@ export class SelectedTextCollector implements Collector {
       try {
         const platform = process.platform;
         let script = '';
+        let clipCmd = '';
         
-        // We simulate a Ctrl+C/Cmd+C, read the clipboard, then undo the copy.
-        // This is a hacky but standard way to get selected text without a browser extension.
         if (platform === 'darwin') {
           script = `osascript -e 'tell application "System Events" to keystroke "c" using command down'`;
+          clipCmd = 'pbpaste';
         } else if (platform === 'linux') {
-          // Requires xdotool
           script = `xdotool key ctrl+c`;
+          clipCmd = 'xclip -selection clipboard -o';
+        } else if (platform === 'win32') {
+          // Windows PowerShell script to simulate Ctrl+C
+          script = `powershell -NoProfile -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('^c')"`;
+          clipCmd = `powershell -NoProfile -Command "Get-Clipboard"`;
         } else {
-          return; // Windows requires PowerShell automation, skipping for MVP
+          return;
         }
 
-        const oldClipboard = await execAsync(platform === 'darwin' ? 'pbpaste' : 'xclip -selection clipboard -o').catch(() => ({ stdout: '' }));
+        // Save old clipboard to restore later (omitted for MVP, but good practice)
+        // const oldClipboard = await execAsync(clipCmd).catch(() => ({ stdout: '' }));
         
         await execAsync(script);
-        await new Promise(r => setTimeout(r, 100)); // Wait for clipboard to update
+        await new Promise(r => setTimeout(r, 150)); // Wait for clipboard to update
         
-        const { stdout } = await execAsync(platform === 'darwin' ? 'pbpaste' : 'xclip -selection clipboard -o');
+        const { stdout } = await execAsync(clipCmd);
         const selectedText = stdout.trim();
-
-        // Restore old clipboard
-        // (Omitted for brevity, but in production you'd write oldClipboard back)
 
         if (selectedText && selectedText !== this.lastText && selectedText.length > 2) {
           this.lastText = selectedText;

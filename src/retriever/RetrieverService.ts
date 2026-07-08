@@ -5,7 +5,10 @@ export class RetrieverService {
   constructor(private memoryService: MemoryService) {}
 
   async retrieveContext(userPrompt: string): Promise<string> {
+    // 1. Get Recent Timeline (from SQLite)
     const recent = await this.memoryService.getRecentContext(3);
+    
+    // 2. Get Semantic Matches (from LanceDB)
     const searchResults = await this.memoryService.searchMemory(userPrompt);
 
     let contextString = "=== RECENT ACTIVITY ===\n";
@@ -17,10 +20,16 @@ export class RetrieverService {
     if (recent.recentCalendar?.length) contextString += `Next Calendar Event: ${recent.recentCalendar[0].summary} at ${recent.recentCalendar[0].startTime}\n`;
     if (recent.recentOCR?.length) contextString += `Text currently on screen: ${recent.recentOCR[0].text.substring(0, 200)}...\n`;
     
-    contextString += "\n=== RELEVANT MEMORY ===\n";
-    if (searchResults.clips?.length) contextString += `Clipboard matches: ${searchResults.clips.map(c => c.content).join(', ')}\n`;
-    if (searchResults.browser?.length) contextString += `Browser matches: ${searchResults.browser.map(b => b.title).join(', ')}\n`;
-    if (searchResults.slack?.length) contextString += `Slack matches: ${searchResults.slack.map(s => s.text).join(', ')}\n`;
+    // Add Semantic Search Results
+    contextString += "\n=== RELEVANT SEMANTIC MEMORY ===\n";
+    if (searchResults.semanticMatches && searchResults.semanticMatches.length > 0) {
+      searchResults.semanticMatches.forEach((match: any) => {
+        // match.text and match.type come directly from our LanceDB VectorService
+        contextString += `- (Type: ${match.type}) ${match.text}\n`;
+      });
+    } else {
+      contextString += "No semantic matches found.\n";
+    }
 
     return contextString;
   }

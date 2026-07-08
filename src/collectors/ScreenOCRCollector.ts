@@ -25,14 +25,22 @@ export class ScreenOCRCollector implements Collector {
         const tempImg = path.join(os.tmpdir(), 'ai_screen.png');
         let text = '';
 
-        // Take screenshot
-        if (platform === 'darwin') await execAsync(`screencapture -x "${tempImg}"`);
-        else if (platform === 'linux') await execAsync(`gnome-screenshot -f "${tempImg}"`);
-        else return; // Windows requires different tools
+        // Take screenshot based on OS
+        if (platform === 'darwin') {
+          await execAsync(`screencapture -x "${tempImg}"`);
+        } else if (platform === 'linux') {
+          await execAsync(`gnome-screenshot -f "${tempImg}"`);
+        } else if (platform === 'win32') {
+          // Windows PowerShell script to capture screen
+          const psScript = `Add-Type -AssemblyName System.Windows.Forms; Add-Type -AssemblyName System.Drawing; $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds; $bmp = New-Object System.Drawing.Bitmap($bounds.Width, $bounds.Height); $g = [System.Drawing.Graphics]::FromImage($bmp); $g.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size); $bmp.Save('${tempImg.replace(/\\/g, '\\\\')}'); $g.Dispose(); $bmp.Dispose();`;
+          await execAsync(`powershell -NoProfile -Command "${psScript}"`);
+        } else {
+          return;
+        }
 
         if (!fs.existsSync(tempImg)) return;
 
-        // Run OCR (Requires 'tesseract' CLI installed)
+        // Run OCR (Requires 'tesseract' CLI installed on the OS)
         const { stdout } = await execAsync(`tesseract "${tempImg}" stdout`);
         text = stdout.trim();
 
