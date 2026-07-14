@@ -1,0 +1,189 @@
+// src/actions/ActionExecutor.ts
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import path from 'path';
+import os from 'os';
+import { SlackIntegration } from '../integrations/SlackIntegration';
+import { GithubIntegration } from '../integrations/GithubIntegration';
+import { GmailIntegration } from '../integrations/GmailIntegration';
+import { CalendarIntegration } from '../integrations/CalendarIntegration';
+import { NotionIntegration } from '../integrations/NotionIntegration';
+import { BrowserAutomationIntegration } from '../integrations/BrowserAutomationIntegration';
+import { VSCodeIntegration } from '../integrations/VSCodeIntegration';
+
+const execAsync = promisify(exec);
+
+export class ActionExecutor {
+  private slack: SlackIntegration;
+  private github: GithubIntegration;
+  private gmail: GmailIntegration;
+  private calendar: CalendarIntegration;
+  private notion: NotionIntegration;
+  private browserAutomation: BrowserAutomationIntegration;
+  private vscode: VSCodeIntegration;
+
+  constructor() {
+    this.slack = new SlackIntegration();
+    this.github = new GithubIntegration();
+    this.gmail = new GmailIntegration();
+    this.calendar = new CalendarIntegration();
+    this.notion = new NotionIntegration();
+    this.browserAutomation = new BrowserAutomationIntegration();
+    this.vscode = new VSCodeIntegration();
+  }
+
+  async execute(toolName: string, args: Record<string, string | number | boolean>): Promise<string> {
+    try {
+      switch (toolName) {
+        // Local OS Actions
+        case 'open_browser_url':
+          return await this.openUrl(String(args.url));
+        case 'create_directory':
+          return await this.createDirectory(String(args.path));
+        case 'open_vscode_file':
+          return await this.openVsCode(String(args.filePath));
+
+        // Integration Actions (calendar has no duplicate elsewhere, kept here)
+        case 'create_calendar_event':
+          return await this.calendar.createEvent(String(args.summary), String(args.startTime), String(args.endTime));
+
+        // Browser Automation Actions
+        case 'browser_navigate':
+          return await this.browserAutomation.navigate(String(args.url));
+        case 'browser_click':
+          return await this.browserAutomation.click(String(args.selector));
+        case 'browser_fill':
+          return await this.browserAutomation.fill(String(args.selector), String(args.value));
+        case 'browser_read_content':
+          return await this.browserAutomation.readContent();
+        case 'browser_close':
+          return await this.browserAutomation.close();
+
+        // Gmail Actions
+        case 'create_gmail_draft':
+          return await this.gmail.createDraft(String(args.to), String(args.subject), String(args.body));
+        case 'send_email':
+          return await this.gmail.sendEmail(String(args.to), String(args.subject), String(args.body));
+        case 'search_emails':
+          return await this.gmail.searchEmails(String(args.query));
+        case 'read_recent_emails':
+          return await this.gmail.readRecentEmails();
+        case 'reply_to_email':
+          return await this.gmail.replyToEmail(String(args.messageId), String(args.body));
+
+        // Slack Actions
+        case 'send_slack_message':
+          return await this.slack.sendMessage(String(args.channel), String(args.message));
+        case 'slack_reply_thread':
+          return await this.slack.replyToThread(String(args.channel), String(args.threadTs), String(args.message));
+        case 'slack_read_recent':
+          return await this.slack.readRecentMessages(String(args.channel));
+        case 'slack_search_channels':
+          return await this.slack.searchChannels(String(args.query));
+        case 'slack_search_conversations':
+          return await this.slack.searchConversations(String(args.query));
+
+        // GitHub Actions
+        case 'create_github_issue':
+          return await this.github.createIssue(String(args.repo), String(args.title), String(args.body || ''));
+        case 'github_read_issues':
+          return await this.github.readIssues(String(args.repo));
+        case 'github_read_prs':
+          return await this.github.readPullRequests(String(args.repo));
+        case 'github_pr_comment':
+          return await this.github.createPRComment(String(args.repo), Number(args.prNumber), String(args.body));
+        case 'github_assign_issue':
+          return await this.github.assignIssue(String(args.repo), Number(args.issueNumber), String(args.assignee));
+        case 'github_close_issue':
+          return await this.github.closeIssue(String(args.repo), Number(args.issueNumber));
+        case 'github_reopen_issue':
+          return await this.github.reopenIssue(String(args.repo), Number(args.issueNumber));
+
+        // Notion Actions
+        case 'create_notion_page':
+          return await this.notion.createPage(String(args.databaseId), String(args.title));
+        case 'notion_search_pages':
+          return await this.notion.searchPages(String(args.query));
+        case 'notion_read_page':
+          return await this.notion.readPage(String(args.pageId));
+        case 'notion_edit_page':
+          return await this.notion.editPage(String(args.pageId), String(args.text));
+        case 'notion_update_database':
+          return await this.notion.updateDatabase(String(args.databaseId), String(args.newTitle));
+
+        // Chrome Tab Actions
+        case 'browser_get_current_tab':
+          return await this.browserAutomation.getCurrentTab();
+        case 'browser_open_new_tab':
+          return await this.browserAutomation.openNewTab(String(args.url));
+        case 'browser_close_tab':
+          return await this.browserAutomation.closeTab();
+
+        // Calendar Actions
+        case 'create_calendar_event':
+          return await this.calendar.createEvent(String(args.summary), String(args.startTime), String(args.endTime));
+        case 'calendar_read_upcoming':
+          return await this.calendar.readUpcomingEvents();
+        case 'calendar_update_time':
+          return await this.calendar.updateEventTime(String(args.eventId), String(args.startTime), String(args.endTime));
+        case 'calendar_delete_event':
+          return await this.calendar.deleteEvent(String(args.eventId));
+
+        // VS Code Actions (NEW)
+        case 'vscode_open_file': return await this.vscode.openFile(String(args.filePath));
+        case 'vscode_get_workspace': return await this.vscode.getCurrentWorkspace();
+        case 'vscode_get_current_file': return await this.vscode.getCurrentFile();
+        case 'vscode_get_cursor_position': return await this.vscode.getCursorPosition();
+        case 'vscode_read_selected_code': return await this.vscode.readSelectedCode();
+
+        default:
+          return `Error: Tool '${toolName}' is not supported.`;
+      }
+    } catch (error) {
+      return `Error executing ${toolName}: ${error instanceof Error ? error.message : String(error)}`;
+    }
+  }
+
+  private async openUrl(url: string): Promise<string> {
+    if (!url || !url.match(/^https?:\/\//)) {
+      return "Error: Invalid URL. Must start with http:// or https://";
+    }
+
+    const platform = process.platform;
+    if (platform === 'darwin') await execAsync(`open "${url}"`);
+    else if (platform === 'win32') await execAsync(`start "" "${url}"`);
+    else if (platform === 'linux') await execAsync(`xdg-open "${url}"`);
+
+    return `Successfully opened ${url} in the browser.`;
+  }
+
+  private async createDirectory(dirPath: string): Promise<string> {
+    if (!dirPath) return "Error: No path provided.";
+
+    const homeDir = os.homedir();
+    const resolvedPath = path.resolve(homeDir, dirPath);
+
+    if (!resolvedPath.startsWith(homeDir)) {
+      return "Error: Security violation. Cannot create directories outside your home folder.";
+    }
+
+    const platform = process.platform;
+    if (platform === 'win32') {
+      await execAsync(`powershell -NoProfile -Command "New-Item -ItemType Directory -Force -Path '${resolvedPath}'"`);
+    } else {
+      await execAsync(`mkdir -p "${resolvedPath}"`);
+    }
+
+    return `Successfully created directory at ${resolvedPath}`;
+  }
+
+  private async openVsCode(filePath: string): Promise<string> {
+    if (!filePath) return "Error: No file path provided.";
+    try {
+      await execAsync(`code "${filePath}"`);
+      return `Successfully opened ${filePath} in VS Code.`;
+    } catch (error) {
+      return `Error opening VS Code. Ensure the 'code' command is installed in your PATH.`;
+    }
+  }
+}

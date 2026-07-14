@@ -1,0 +1,64 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model AppActivity {
+  id        Int      @id @default(autoincrement())
+  app       String
+  window    String?
+  timestamp DateTime @default(now())
+}
+
+model ClipboardHistory {
+  id        Int      @id @default(autoincrement())
+  content   String
+  timestamp DateTime @default(now())
+}
+
+model BrowserHistory {
+  id        Int      @id @default(autoincrement())
+  url       String
+  title     String
+  timestamp DateTime @default(now())
+}
+
+model SelectedText {
+  id        Int      @id @default(autoincrement())
+  text      String
+  app       String?
+  timestamp DateTime @default(now())
+}
+
+model SlackMessage {
+  id        Int      @id @default(autoincrement())
+  channel   String
+  user      String?
+  text      String
+  timestamp DateTime @default(now())
+}
+
+model CalendarEvent {
+  id        Int      @id @default(autoincrement())
+  summary   String
+  startTime DateTime
+  endTime   DateTime?
+  timestamp DateTime @default(now())
+}
+
+model VSCodeActivity {
+  id        Int      @id @default(autoincrement())
+  workspace String
+  file      String?
+  timestamp DateTime @default(now())
+}
+
+model ScreenOCR {
+  id        Int      @id @default(autoincrement())
+  text      String
+  timestamp DateTime @default(now())
+}

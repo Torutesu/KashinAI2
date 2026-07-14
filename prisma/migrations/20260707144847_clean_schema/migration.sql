@@ -1,0 +1,14 @@
+-- CreateTable
+CREATE TABLE "AppActivity" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "app" TEXT NOT NULL,
+    "window" TEXT,
+    "timestamp" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- CreateTable
+CREATE TABLE "ClipboardHistory" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "content" TEXT NOT NULL,
+    "timestamp" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

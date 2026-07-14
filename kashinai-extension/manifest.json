@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "KashinAI",
+  "version": "1.0",
+  "description": "Highlight text and ask your local AI",
+  "permissions": ["activeTab", "contextMenus", "scripting"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "commands": {
+    "trigger-ai": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+Space",
+        "mac": "Command+Shift+Space"
+      },
+      "description": "Ask Local AI about highlighted text"
+    }
+  }
+}

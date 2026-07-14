@@ -1,0 +1,76 @@
+// src/integrations/VSCodeIntegration.ts
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
+
+const execAsync = promisify(exec);
+
+export class VSCodeIntegration {
+  private getStoragePath(): string | null {
+    const platform = process.platform;
+    const home = os.homedir();
+    if (platform === 'darwin') return path.join(home, 'Library', 'Application Support', 'Code', 'User', 'globalStorage', 'storage.json');
+    if (platform === 'win32') return path.join(home, 'AppData', 'Roaming', 'Code', 'User', 'globalStorage', 'storage.json');
+    if (platform === 'linux') return path.join(home, '.config', 'Code', 'User', 'globalStorage', 'storage.json');
+    return null;
+  }
+
+  private readStorage(): any {
+    const p = this.getStoragePath();
+    if (!p || !fs.existsSync(p)) return null;
+    try {
+      return JSON.parse(fs.readFileSync(p, 'utf-8'));
+    } catch {
+      return null;
+    }
+  }
+
+  // 1. Open File
+  async openFile(filePath: string): Promise<string> {
+    try {
+      await execAsync(`code "${filePath}"`);
+      return `Successfully opened ${filePath} in VS Code.`;
+    } catch (error) {
+      return `Error opening VS Code. Ensure the 'code' command is installed in your PATH.`;
+    }
+  }
+
+  // 2. Current Workspace
+  async getCurrentWorkspace(): Promise<string> {
+    const storage = this.readStorage();
+    if (!storage) return 'Could not read VS Code state.';
+    
+    // Parse the local storage.json to find the last active workspace
+    const workspace = storage?.window?.lastActiveWindow?.folder || storage?.window?.lastActiveWindow?.workspace?.configPath;
+    return workspace ? `Current workspace: ${workspace}` : 'No active workspace found.';
+  }
+
+  // 3. Current File (Most recently opened file)
+  async getCurrentFile(): Promise<string> {
+    const storage = this.readStorage();
+    if (!storage) return 'Could not read VS Code state.';
+    
+    const recentPaths = storage?.window?.recentlyOpenedPaths || [];
+    // Find the most recent entry that is a file, not a folder
+    const recentFile = recentPaths.find((p: any) => p.fileUri);
+    
+    if (recentFile) {
+      const filePath = recentFile.fileUri.replace('file://', '');
+      return `Current/most recent file: ${filePath}`;
+    }
+    return 'No recent files found.';
+  }
+
+  // 4. Cursor Position & 5. Read Selected Code
+  // Because Node.js cannot reach inside the VS Code process, these require a VS Code Extension.
+  // We return this graceful message so the LLM knows it needs the extension connected.
+  async getCursorPosition(): Promise<string> {
+    return "Live cursor position requires the VS Code Extension to be connected to the backend.";
+  }
+
+  async readSelectedCode(): Promise<string> {
+    return "Reading live selected code requires the VS Code Extension to be connected to the backend.";
+  }
+}
