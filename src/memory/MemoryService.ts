@@ -3,6 +3,11 @@ import { prisma } from '../db/prisma';
 import { ContextEvent } from '../types';
 import { VectorService } from './VectorService';
 import { retentionCutoff } from './retention';
+import { redactSecrets } from '../security/redaction';
+
+// Content from these sources is raw user data that routinely contains secrets
+// (passwords copied to the clipboard, API keys on screen). Redact before storing.
+const REDACTED_TYPES = new Set(['CLIPBOARD', 'SELECTED_TEXT', 'SCREEN_OCR']);
 
 export class MemoryService {
   public vectorService: VectorService;
@@ -15,6 +20,16 @@ export class MemoryService {
 
   async storeEvent(event: ContextEvent) {
     try {
+      // 0. Redact obvious secrets from high-risk sources before persisting,
+      //    unless explicitly disabled.
+      if (
+        event.content &&
+        REDACTED_TYPES.has(event.type) &&
+        process.env.DISABLE_SECRET_REDACTION !== 'true'
+      ) {
+        event = { ...event, content: redactSecrets(event.content) };
+      }
+
       // 1. Save to SQLite (for recent timeline)
       if (event.type === 'APP_ACTIVITY') {
         await prisma.appActivity.create({ data: { app: event.app!, window: event.window || '' } });

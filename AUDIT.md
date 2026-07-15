@@ -114,6 +114,13 @@ and `readSelectedCode`). But several serious gaps block productization.
 
 ## 6. Changelog
 
+- **2026-07-15** — Secret redaction on capture:
+  - `src/security/redaction.ts` strips obvious secrets (provider tokens, JWTs,
+    PEM private keys, Bearer tokens, `key=value` secret assignments, Luhn-valid
+    card numbers) from clipboard / screen-OCR / selected-text content before it
+    is persisted to SQLite or LanceDB. Opt out with `DISABLE_SECRET_REDACTION=true`.
+    Unit tested (6 cases).
+
 - **2026-07-15** — Memory retention policy added:
   - `MemoryService.pruneOldMemories()` deletes SQLite rows and LanceDB memory
     vectors older than `MEMORY_RETENTION_DAYS` (default 30; 0 disables); the
