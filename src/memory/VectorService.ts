@@ -62,6 +62,28 @@ export class VectorService {
     }
   }
 
+  /**
+   * Delete stored memory vectors older than the given ISO cutoff. The INIT seed
+   * row and the tool index are preserved. Returns how many rows were removed.
+   * `isoCutoff` is generated internally from a Date, so it's safe to inline.
+   */
+  async pruneOlderThan(isoCutoff: string): Promise<number> {
+    if (!this.isConnected) return 0;
+    try {
+      const tables = await this.db.tableNames();
+      if (!tables.includes(this.TABLE_NAME)) return 0;
+
+      const table = await this.db.openTable(this.TABLE_NAME);
+      const before = await table.countRows();
+      await table.delete(`timestamp < '${isoCutoff}' AND type != 'INIT'`);
+      const after = await table.countRows();
+      return Math.max(0, before - after);
+    } catch (error) {
+      console.error('[VectorService] Prune failed:', error);
+      return 0;
+    }
+  }
+
   async searchMemory(query: string, limit: number = 3): Promise<any[]> {
     if (!this.isConnected) return [];
     try {

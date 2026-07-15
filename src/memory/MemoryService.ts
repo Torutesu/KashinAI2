@@ -2,6 +2,7 @@
 import { prisma } from '../db/prisma';
 import { ContextEvent } from '../types';
 import { VectorService } from './VectorService';
+import { retentionCutoff } from './retention';
 
 export class MemoryService {
   public vectorService: VectorService;
@@ -81,5 +82,34 @@ export class MemoryService {
 
   async searchTools(query: string, limit: number = 6): Promise<{ name: string; distance: number }[]> {
     return this.vectorService.searchTools(query, limit);
+  }
+
+  /**
+   * Enforce the retention policy: delete SQLite rows and memory vectors older
+   * than `retentionDays`. Prevents the local stores from growing without bound.
+   */
+  async pruneOldMemories(retentionDays: number): Promise<void> {
+    if (retentionDays <= 0) return;
+    const cutoff = retentionCutoff(retentionDays, new Date());
+    const where = { timestamp: { lt: cutoff } };
+    try {
+      const results = await Promise.all([
+        prisma.appActivity.deleteMany({ where }),
+        prisma.clipboardHistory.deleteMany({ where }),
+        prisma.browserHistory.deleteMany({ where }),
+        prisma.selectedText.deleteMany({ where }),
+        prisma.slackMessage.deleteMany({ where }),
+        prisma.calendarEvent.deleteMany({ where }),
+        prisma.vSCodeActivity.deleteMany({ where }),
+        prisma.screenOCR.deleteMany({ where }),
+      ]);
+      const sqliteDeleted = results.reduce((sum, r) => sum + r.count, 0);
+      const vectorsDeleted = await this.vectorService.pruneOlderThan(cutoff.toISOString());
+      console.log(
+        `[MemoryService] Retention: pruned ${sqliteDeleted} SQLite rows and ${vectorsDeleted} vectors older than ${retentionDays}d.`
+      );
+    } catch (error) {
+      console.error('[MemoryService] Retention prune failed:', error);
+    }
   }
 }

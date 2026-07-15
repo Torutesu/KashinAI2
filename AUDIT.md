@@ -57,7 +57,8 @@ and `readSelectedCode`). But several serious gaps block productization.
 - **Duplicated `MemoryService`**: `app.ts` and `server.ts` each construct one,
   double-loading the embedding model and LanceDB connection.
 - **Dead `case`**: `create_calendar_event` appeared twice in `ActionExecutor`.
-- **Unbounded memory growth**: no retention / pruning of SQLite or LanceDB.
+- ~~**Unbounded memory growth**: no retention / pruning of SQLite or LanceDB.~~
+  **Fixed** — `MEMORY_RETENTION_DAYS` pruning (see changelog).
 - **`SelectedTextCollector` is destructive**: synthesizes Ctrl+C every 5s and
   clobbers the user's clipboard (restore left as a TODO).
 
@@ -112,6 +113,13 @@ and `readSelectedCode`). But several serious gaps block productization.
 ---
 
 ## 6. Changelog
+
+- **2026-07-15** — Memory retention policy added:
+  - `MemoryService.pruneOldMemories()` deletes SQLite rows and LanceDB memory
+    vectors older than `MEMORY_RETENTION_DAYS` (default 30; 0 disables); the
+    INIT seed row and tool index are preserved.
+  - Scheduled from `server.ts` (first run after 60s, then every 6h) so the
+    local stores no longer grow without bound. Pure cutoff helper unit-tested.
 
 - **2026-07-15** — Remaining reliability bugs fixed:
   - **SelectedTextCollector no longer clobbers the clipboard**: Linux reads the
