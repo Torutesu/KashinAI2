@@ -53,7 +53,9 @@ and `readSelectedCode`). But several serious gaps block productization.
 - **Global confirmation state**: `OrchestratorService.pendingCalls` was a
   singleton field with no session concept → concurrent requests could mix
   (one user's "yes" executing another's pending action).
-- **Conversation not persisted**: `/chat` is stateless across turns.
+- ~~**Conversation not persisted**: `/chat` is stateless across turns.~~
+  **Fixed** — per-session multi-turn history (see changelog); in-memory
+  (survives within a process, not across restarts).
 - **Duplicated `MemoryService`**: `app.ts` and `server.ts` each construct one,
   double-loading the embedding model and LanceDB connection.
 - **Dead `case`**: `create_calendar_event` appeared twice in `ActionExecutor`.
@@ -113,6 +115,13 @@ and `readSelectedCode`). But several serious gaps block productization.
 ---
 
 ## 6. Changelog
+
+- **2026-07-15** — Multi-turn conversation history:
+  - `/chat` (and `/voice`) now carry per-session conversation context.
+    `OrchestratorService` keeps clean per-session history (user prompt + final
+    answer, capped to ~10 turns) and seeds each turn with it; `GeminiProvider`
+    now actually sends the history as multi-turn `contents` (it previously
+    ignored the `history` param). Session-isolated; unit tested (2 cases).
 
 - **2026-07-15** — Secret redaction on capture:
   - `src/security/redaction.ts` strips obvious secrets (provider tokens, JWTs,

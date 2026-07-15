@@ -33,6 +33,10 @@ export class OrchestratorService {
   // Confirmation state is keyed per session so concurrent callers never mix
   // (one user's "yes" must not execute another user's pending action).
   private pendingCallsBySession: Map<string, ToolCall[]> = new Map();
+  // Clean multi-turn history per session (only the user prompt + final answer of
+  // each turn — not the in-loop tool scaffolding). Capped to the most recent turns.
+  private conversationHistory: Map<string, LLMHistoryMessage[]> = new Map();
+  private readonly MAX_HISTORY_MESSAGES = 20; // ~10 turns
 
   constructor(
     private retriever: RetrieverService,
@@ -67,9 +71,11 @@ export class OrchestratorService {
     const tools = await selectRelevantToolsSemantic(this.memoryService, prompt);
     console.log(`[Orchestrator] Sending ${tools.length} tool(s) to LLM: ${tools.map(t => t.name).join(', ')}`);
 
-    // 3. AGENTIC LOOP - Allows the AI to use multiple tools in sequence
+    // 3. AGENTIC LOOP - Allows the AI to use multiple tools in sequence.
+    //    Seed with the session's prior conversation so the model has context.
+    const priorHistory = this.conversationHistory.get(sessionId) ?? [];
     let currentPrompt = prompt;
-    let history: LLMHistoryMessage[] = [{ role: 'user', parts: [{ text: prompt }] }];
+    let history: LLMHistoryMessage[] = [...priorHistory, { role: 'user', parts: [{ text: prompt }] }];
     let steps = 0;
     const MAX_STEPS = 5; // Safety limit to prevent infinite loops
     let finalOutput = "";
@@ -121,7 +127,21 @@ export class OrchestratorService {
       finalOutput += "\n(I reached the maximum number of steps for this task.)";
     }
 
-    return finalOutput.trim() || "I couldn't process that request.";
+    const answer = finalOutput.trim() || "I couldn't process that request.";
+    this.recordTurn(sessionId, prompt, answer);
+    return answer;
+  }
+
+  /** Append this turn's user prompt + final answer to the session history (capped). */
+  private recordTurn(sessionId: string, prompt: string, answer: string): void {
+    const prior = this.conversationHistory.get(sessionId) ?? [];
+    const updated: LLMHistoryMessage[] = [
+      ...prior,
+      { role: 'user', parts: [{ text: prompt }] },
+      { role: 'model', parts: [{ text: answer }] },
+    ];
+    // Keep only the most recent messages to bound memory and prompt size.
+    this.conversationHistory.set(sessionId, updated.slice(-this.MAX_HISTORY_MESSAGES));
   }
 
   private async runToolCalls(calls: ToolCall[]): Promise<string> {

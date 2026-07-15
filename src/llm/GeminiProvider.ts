@@ -30,9 +30,16 @@ export class GeminiProvider implements LLMProvider {
         }
       }));
 
+      // Build multi-turn contents from history so the model sees prior turns.
+      // Falls back to the single prompt when no history is supplied (e.g. /llm/query).
+      const contents =
+        history && history.length > 0
+          ? history.map((h) => ({ role: h.role === 'model' ? 'model' : 'user', parts: h.parts }))
+          : [{ role: 'user', parts: [{ text: prompt }] }];
+
       const response = await this.ai.models.generateContent({
         model: 'gemini-flash-latest',
-        contents: { parts: [{ text: prompt }], role: 'user' },
+        contents,
         config: {
           systemInstruction: systemPrompt,
           // Cast to any to bypass strict SDK structural typing on the nested parameters
