@@ -1,20 +1,12 @@
 // src/integrations/GmailIntegration.ts
 import { google } from 'googleapis';
-import fs from 'fs';
-import path from 'path';
 import { assertSafeHeaderValue } from '../security/inputValidation';
-
-const TOKEN_PATH = path.join(process.cwd(), 'google_token.json');
-const CREDENTIALS_PATH = path.join(process.cwd(), 'google_credentials.json');
+import { getGoogleAuthClient } from '../auth/googleClient';
 
 export class GmailIntegration {
   private async getAuth() {
-    const credentials = JSON.parse(fs.readFileSync(CREDENTIALS_PATH, 'utf-8'));
-    const tokens = JSON.parse(fs.readFileSync(TOKEN_PATH, 'utf-8'));
-    const { client_secret, client_id } = credentials.installed;
-    const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, 'http://localhost');
-    oAuth2Client.setCredentials(tokens);
-    return oAuth2Client;
+    // Shared, refresh-capable client (auto-refreshes + persists the token).
+    return getGoogleAuthClient();
   }
 
   // 1. Create Draft

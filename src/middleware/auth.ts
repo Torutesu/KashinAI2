@@ -14,7 +14,10 @@
 import { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
 
-const API_TOKEN = process.env.API_TOKEN || '';
+// Read lazily (not at module load) so it reflects env loaded via ./loadEnv.
+function getApiToken(): string {
+  return process.env.API_TOKEN || '';
+}
 
 let warned = false;
 function warnOnce() {
@@ -45,12 +48,13 @@ function tokensMatch(provided: string, expected: string): boolean {
 }
 
 export function requireApiToken(req: Request, res: Response, next: NextFunction) {
-  if (!API_TOKEN) {
+  const apiToken = getApiToken();
+  if (!apiToken) {
     warnOnce();
     return next(); // dev-only open mode
   }
   const provided = extractToken(req);
-  if (!provided || !tokensMatch(provided, API_TOKEN)) {
+  if (!provided || !tokensMatch(provided, apiToken)) {
     return res.status(401).json({ error: 'Unauthorized: valid x-api-token header required.' });
   }
   next();

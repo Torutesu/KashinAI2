@@ -113,6 +113,26 @@ and `readSelectedCode`). But several serious gaps block productization.
 
 ## 6. Changelog
 
+- **2026-07-15** — P1 reliability fixes landed:
+  - **Google token auto-refresh**: new shared `src/auth/googleClient.ts` used by
+    Gmail, Calendar, and the calendar collector — auto-refreshes the access
+    token and persists it back to disk; supports `installed` *and* `web`
+    credential shapes and configurable paths (`GOOGLE_CREDENTIALS_PATH` /
+    `GOOGLE_TOKEN_PATH`).
+  - **Single shared `MemoryService`** (`src/memory/instance.ts`) — no more
+    double embedding-model load / split reader-writer instances.
+  - **Observability**: throttled logger (`src/utils/logger.ts`) replaces the
+    silent `catch {}` blocks in the Slack / VSCode / SelectedText / ScreenOCR /
+    Calendar collectors (logs at most once / 5 min per source).
+  - **Startup binary check** (`src/utils/binaryCheck.ts`) — warns about missing
+    `sqlite3` / `tesseract` / `code` / `xdotool` / `xclip` / `wl-paste` /
+    `gnome-screenshot` for the current platform.
+  - **Fixed CalendarReadCollector bug**: `nextEvent.start` could be undefined
+    (all-day events / missing start) — now guarded (also cleared a type error).
+  - **Env load order**: `src/loadEnv.ts` imported first so `API_TOKEN` /
+    `GEMINI_API_KEY` are populated before config reads them; auth token is now
+    read per-request. Whole project typechecks clean (`tsc --noEmit`).
+
 - **2026-07-15** — P0 security fixes landed: API-token auth middleware +
   CORS allowlist, `execFile`/`fs`-based action execution (no shell strings),
   Gmail header sanitization, browser URL allowlist, session-scoped

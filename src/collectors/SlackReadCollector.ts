@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { MemoryService } from '../memory/MemoryService';
 import { Collector } from '../types';
+import { warnThrottled } from '../utils/logger';
 
 export class SlackReadCollector implements Collector {
   private interval: NodeJS.Timeout | null = null;
@@ -39,7 +40,7 @@ export class SlackReadCollector implements Collector {
           }
         }
       } catch (error) {
-        // Silent fail
+        warnThrottled('slack-collector', 300000, '[SlackReadCollector] poll failed:', error instanceof Error ? error.message : error);
       }
     }, 60000);
   }

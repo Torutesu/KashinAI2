@@ -1,5 +1,5 @@
 // src/server.ts
-import dotenv from 'dotenv';
+import './loadEnv'; // must be first — populates process.env before app/config load
 import app from './app';
 import { ActiveWindowCollector } from './collectors/ActiveWindowCollector';
 import { ClipboardCollector } from './collectors/ClipboardCollector';
@@ -9,15 +9,16 @@ import { SlackReadCollector } from './collectors/SlackReadCollector';
 import { CalendarReadCollector } from './collectors/CalendarReadCollector';
 import { VSCodeCollector } from './collectors/VSCodeCollector';
 import { ScreenOCRCollector } from './collectors/ScreenOCRCollector';
-import { MemoryService } from './memory/MemoryService';
+import { memoryService } from './memory/instance';
 import { WhisperService } from './voice/WhisperService'; // ⬅️ NEW
-
-dotenv.config();
+import { checkExternalBinaries } from './utils/binaryCheck';
 
 const PORT = process.env.PORT || 3001;
 
-// Shared singletons
-const memoryService = new MemoryService();
+// Warn early about any missing external tools the collectors/actions rely on.
+checkExternalBinaries();
+
+// Shared singleton MemoryService (imported from ./memory/instance)
 
 // Initialize Collectors
 const collectors = [

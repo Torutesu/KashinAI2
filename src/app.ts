@@ -1,7 +1,8 @@
 // src/app.ts
+import './loadEnv'; // must be first — populates process.env before config reads it
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
-import { MemoryService } from './memory/MemoryService';
+import { memoryService } from './memory/instance';
 import { RetrieverService } from './retriever/RetrieverService';
 import { GeminiProvider } from './llm/GeminiProvider';
 import { OrchestratorService } from './llm/OrchestratorService';
@@ -16,8 +17,7 @@ app.use(cors({ origin: corsOriginCheck }));
 // Limit payload size to 1mb to prevent crashing
 app.use(express.json({ limit: '1mb' }));
 
-// Dependency Injection (Singletons)
-const memoryService = new MemoryService();
+// Dependency Injection (Singletons) — memoryService is shared process-wide.
 const retrieverService = new RetrieverService(memoryService);
 const llmProvider = new GeminiProvider(process.env.GEMINI_API_KEY || '');
 const orchestratorService = new OrchestratorService(retrieverService, llmProvider, memoryService);
