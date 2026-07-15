@@ -3,14 +3,19 @@ chrome.commands.onCommand.addListener(async (command) => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab) return;
 
+    // The backend authenticates state-changing calls with a shared token.
+    // Store it once via: chrome.storage.local.set({ kashinaiToken: '<token>' })
+    const { kashinaiToken } = await chrome.storage.local.get('kashinaiToken');
+
     chrome.scripting.executeScript({
       target: { tabId: tab.id },
-      func: processPage, 
+      func: processPage,
+      args: [kashinaiToken || ''],
     });
   }
-}); 
+});
 
-async function processPage() {
+async function processPage(apiToken) {
   // 1. Clean up any existing popup HOST (the shadow root lives inside this)
   const oldHost = document.getElementById('kashinai-popup-host');
   if (oldHost) oldHost.remove();
@@ -93,7 +98,10 @@ async function processPage() {
     try {
       const res = await fetch('http://localhost:3001/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(apiToken ? { 'x-api-token': apiToken } : {})
+        },
         body: JSON.stringify({ prompt: text })
       });
       const data = await res.json();
@@ -139,6 +147,7 @@ async function processPage() {
           try {
             const res = await fetch('http://localhost:3001/voice/query', {
               method: 'POST',
+              headers: apiToken ? { 'x-api-token': apiToken } : {},
               body: formData
             });
             const data = await res.json();

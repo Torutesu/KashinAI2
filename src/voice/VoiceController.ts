@@ -32,7 +32,8 @@ export function createVoiceController(orchestratorService: OrchestratorService) 
       }
 
       // 3. Reuse the exact same RAG + Gemini + tool-calling flow as /chat
-      const response = await orchestratorService.processPrompt(transcript);
+      const sessionId = (req.get('x-session-id') || 'voice').slice(0, 128);
+      const response = await orchestratorService.processPrompt(transcript, sessionId);
 
       res.json({ transcript, response });
     } catch (error) {

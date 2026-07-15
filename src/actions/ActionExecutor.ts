@@ -1,8 +1,10 @@
 // src/actions/ActionExecutor.ts
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import { promisify } from 'util';
+import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import { isSafeHttpUrl } from '../security/inputValidation';
 import { SlackIntegration } from '../integrations/SlackIntegration';
 import { GithubIntegration } from '../integrations/GithubIntegration';
 import { GmailIntegration } from '../integrations/GmailIntegration';
@@ -11,7 +13,7 @@ import { NotionIntegration } from '../integrations/NotionIntegration';
 import { BrowserAutomationIntegration } from '../integrations/BrowserAutomationIntegration';
 import { VSCodeIntegration } from '../integrations/VSCodeIntegration';
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 export class ActionExecutor {
   private slack: SlackIntegration;
@@ -119,9 +121,7 @@ export class ActionExecutor {
         case 'browser_close_tab':
           return await this.browserAutomation.closeTab();
 
-        // Calendar Actions
-        case 'create_calendar_event':
-          return await this.calendar.createEvent(String(args.summary), String(args.startTime), String(args.endTime));
+        // Calendar Actions (create_calendar_event handled above)
         case 'calendar_read_upcoming':
           return await this.calendar.readUpcomingEvents();
         case 'calendar_update_time':
@@ -145,14 +145,16 @@ export class ActionExecutor {
   }
 
   private async openUrl(url: string): Promise<string> {
-    if (!url || !url.match(/^https?:\/\//)) {
-      return "Error: Invalid URL. Must start with http:// or https://";
+    // Validate the scheme (blocks file://, javascript:, etc.) AND pass the URL
+    // as a single argv entry via execFile so no shell can interpret it.
+    if (!isSafeHttpUrl(url)) {
+      return "Error: Invalid URL. Must be an http:// or https:// URL.";
     }
 
     const platform = process.platform;
-    if (platform === 'darwin') await execAsync(`open "${url}"`);
-    else if (platform === 'win32') await execAsync(`start "" "${url}"`);
-    else if (platform === 'linux') await execAsync(`xdg-open "${url}"`);
+    if (platform === 'darwin') await execFileAsync('open', [url], { shell: false });
+    else if (platform === 'win32') await execFileAsync('rundll32', ['url.dll,FileProtocolHandler', url], { shell: false });
+    else if (platform === 'linux') await execFileAsync('xdg-open', [url], { shell: false });
 
     return `Successfully opened ${url} in the browser.`;
   }
@@ -163,16 +165,14 @@ export class ActionExecutor {
     const homeDir = os.homedir();
     const resolvedPath = path.resolve(homeDir, dirPath);
 
-    if (!resolvedPath.startsWith(homeDir)) {
+    // Ensure the target stays inside the home directory (path.sep guards
+    // against a sibling dir like `/home/userEVIL` matching a `/home/user` prefix).
+    if (resolvedPath !== homeDir && !resolvedPath.startsWith(homeDir + path.sep)) {
       return "Error: Security violation. Cannot create directories outside your home folder.";
     }
 
-    const platform = process.platform;
-    if (platform === 'win32') {
-      await execAsync(`powershell -NoProfile -Command "New-Item -ItemType Directory -Force -Path '${resolvedPath}'"`);
-    } else {
-      await execAsync(`mkdir -p "${resolvedPath}"`);
-    }
+    // No shell — fs.mkdir takes the path literally, so metacharacters are inert.
+    await fs.promises.mkdir(resolvedPath, { recursive: true });
 
     return `Successfully created directory at ${resolvedPath}`;
   }
@@ -180,7 +180,11 @@ export class ActionExecutor {
   private async openVsCode(filePath: string): Promise<string> {
     if (!filePath) return "Error: No file path provided.";
     try {
-      await execAsync(`code "${filePath}"`);
+      if (process.platform === 'win32') {
+        await execFileAsync('cmd', ['/c', 'code', filePath], { shell: false });
+      } else {
+        await execFileAsync('code', [filePath], { shell: false });
+      }
       return `Successfully opened ${filePath} in VS Code.`;
     } catch (error) {
       return `Error opening VS Code. Ensure the 'code' command is installed in your PATH.`;

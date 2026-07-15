@@ -30,7 +30,9 @@ const DENY = new Set(['no', 'n', 'cancel', 'nahi', 'stop']);
 
 export class OrchestratorService {
   private actionExecutor: ActionExecutor;
-  private pendingCalls: ToolCall[] | null = null;
+  // Confirmation state is keyed per session so concurrent callers never mix
+  // (one user's "yes" must not execute another user's pending action).
+  private pendingCallsBySession: Map<string, ToolCall[]> = new Map();
 
   constructor(
     private retriever: RetrieverService,
@@ -40,21 +42,21 @@ export class OrchestratorService {
     this.actionExecutor = new ActionExecutor();
   }
 
-  async processPrompt(prompt: string): Promise<string> {
-    // 0. Handle a pending confirmation from the previous turn
-    if (this.pendingCalls) {
+  async processPrompt(prompt: string, sessionId: string = 'default'): Promise<string> {
+    // 0. Handle a pending confirmation from the previous turn (per session)
+    const pending = this.pendingCallsBySession.get(sessionId);
+    if (pending) {
       const normalized = prompt.trim().toLowerCase();
       if (AFFIRM.has(normalized)) {
-        const calls = this.pendingCalls;
-        this.pendingCalls = null;
-        const results = await this.runToolCalls(calls);
+        this.pendingCallsBySession.delete(sessionId);
+        const results = await this.runToolCalls(pending);
         return results + "\nAction confirmed and executed.";
       }
       if (DENY.has(normalized)) {
-        this.pendingCalls = null;
+        this.pendingCallsBySession.delete(sessionId);
         return "Okay, cancelled. Nothing was executed.";
       }
-      return `I still need a yes/no on the pending action(s):\n${this.describeCalls(this.pendingCalls)}\nReply "yes" to proceed or "no" to cancel.`;
+      return `I still need a yes/no on the pending action(s):\n${this.describeCalls(pending)}\nReply "yes" to proceed or "no" to cancel.`;
     }
 
     // 1. Retrieve Context from SQLite
@@ -98,7 +100,7 @@ export class OrchestratorService {
 
       // Execute DESTRUCTIVE calls? NO. Stop the loop and ask the user for confirmation!
       if (destructiveCalls.length > 0) {
-        this.pendingCalls = destructiveCalls;
+        this.pendingCallsBySession.set(sessionId, destructiveCalls);
         finalOutput += `\nThe following action(s) need your confirmation before I run them:\n${this.describeCalls(destructiveCalls)}\nReply "yes" to proceed or "no" to cancel.`;
         break; // Stop the loop to wait for user's "yes"
       }

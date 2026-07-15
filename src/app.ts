@@ -8,9 +8,10 @@ import { OrchestratorService } from './llm/OrchestratorService';
 import { ActionExecutor } from './actions/ActionExecutor';
 import { createVoiceRoutes } from './voice/VoiceRoutes'; //
 import { getToolEmbeddingCorpus } from './llm/Toolregistry';
+import { requireApiToken, corsOriginCheck } from './middleware/auth';
 
 const app = express();
-app.use(cors());
+app.use(cors({ origin: corsOriginCheck }));
 
 // Limit payload size to 1mb to prevent crashing
 app.use(express.json({ limit: '1mb' }));
@@ -65,13 +66,15 @@ app.post('/retrieve', async (req: Request, res: Response) => {
 });
 
 // --- Chat / Orchestration API ---
-app.post('/chat', async (req: Request, res: Response) => {
+app.post('/chat', requireApiToken, async (req: Request, res: Response) => {
   try {
     const { prompt } = req.body;
     if (!prompt || typeof prompt !== 'string') return res.status(400).json({ error: 'Prompt is required and must be a string' });
     if (prompt.length > 5000) return res.status(400).json({ error: 'Prompt is too long (max 5000 characters)' });
 
-    const response = await orchestratorService.processPrompt(prompt);
+    // Confirmation state is scoped per session so concurrent callers don't mix.
+    const sessionId = (req.get('x-session-id') || (typeof req.body.sessionId === 'string' ? req.body.sessionId : '') || 'default').slice(0, 128);
+    const response = await orchestratorService.processPrompt(prompt, sessionId);
     res.json({ response });
   } catch (error) {
     console.error('[Server] /chat error:', error);
@@ -80,7 +83,7 @@ app.post('/chat', async (req: Request, res: Response) => {
 });
 
 // --- Direct Action Execution API ---
-app.post('/actions/execute', validateBody, async (req: Request, res: Response) => {
+app.post('/actions/execute', requireApiToken, validateBody, async (req: Request, res: Response) => {
   const { toolName, args } = req.body;
   if (!toolName) return res.status(400).json({ error: 'toolName is required' });
   const result = await actionExecutor.execute(toolName, args || {});
@@ -95,7 +98,7 @@ app.get('/memory/search', async (req: Request, res: Response) => {
   res.json(results);
 });
 
-app.post('/memory/store', validateBody, async (req: Request, res: Response) => {
+app.post('/memory/store', requireApiToken, validateBody, async (req: Request, res: Response) => {
   const { type, content, app: appName, window } = req.body;
   if (!type || !content) return res.status(400).json({ error: 'type and content are required' });
   await memoryService.storeEvent({ type, content, app: appName, window, timestamp: new Date() });
@@ -116,6 +119,6 @@ app.post('/llm/query', async (req: Request, res: Response) => {
   }
 });
 
-app.use('/voice', createVoiceRoutes(orchestratorService));
+app.use('/voice', requireApiToken, createVoiceRoutes(orchestratorService));
 
 export default app;

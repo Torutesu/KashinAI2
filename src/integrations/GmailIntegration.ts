@@ -2,6 +2,7 @@
 import { google } from 'googleapis';
 import fs from 'fs';
 import path from 'path';
+import { assertSafeHeaderValue } from '../security/inputValidation';
 
 const TOKEN_PATH = path.join(process.cwd(), 'google_token.json');
 const CREDENTIALS_PATH = path.join(process.cwd(), 'google_credentials.json');
@@ -19,6 +20,8 @@ export class GmailIntegration {
   // 1. Create Draft
   async createDraft(to: string, subject: string, body: string): Promise<string> {
     try {
+      assertSafeHeaderValue('recipient', to);
+      assertSafeHeaderValue('subject', subject);
       const auth = await this.getAuth();
       const gmail = google.gmail({ version: 'v1', auth });
       const email = [`To: ${to}`, `Subject: ${subject}`, '', body].join('\n');
@@ -34,6 +37,8 @@ export class GmailIntegration {
   // 2. Send Email
   async sendEmail(to: string, subject: string, body: string): Promise<string> {
     try {
+      assertSafeHeaderValue('recipient', to);
+      assertSafeHeaderValue('subject', subject);
       const auth = await this.getAuth();
       const gmail = google.gmail({ version: 'v1', auth });
       const email = [`To: ${to}`, `Subject: ${subject}`, '', body].join('\n');
