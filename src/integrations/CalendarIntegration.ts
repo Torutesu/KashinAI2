@@ -8,6 +8,13 @@ export class CalendarIntegration {
     return getGoogleAuthClient();
   }
 
+  // Attach a timeZone when configured so a bare "2026-01-01T09:00:00" isn't
+  // interpreted in whatever timezone Google's servers happen to default to.
+  private withTimeZone(dateTime: string) {
+    const tz = process.env.CALENDAR_TIMEZONE;
+    return tz ? { dateTime, timeZone: tz } : { dateTime };
+  }
+
   // 1. Create Event (Existing)
   async createEvent(summary: string, startTime: string, endTime: string): Promise<string> {
     try {
@@ -15,8 +22,8 @@ export class CalendarIntegration {
       const calendar = google.calendar({ version: 'v3', auth });
       const event = {
         summary,
-        start: { dateTime: startTime },
-        end: { dateTime: endTime },
+        start: this.withTimeZone(startTime),
+        end: this.withTimeZone(endTime),
       };
       const response = await calendar.events.insert({ calendarId: 'primary', requestBody: event });
       return `Successfully created calendar event: ${response.data.summary} (ID: ${response.data.id})`;
@@ -63,8 +70,8 @@ export class CalendarIntegration {
       const calendar = google.calendar({ version: 'v3', auth });
 
       const updatedEvent = {
-        start: { dateTime: startTime },
-        end: { dateTime: endTime },
+        start: this.withTimeZone(startTime),
+        end: this.withTimeZone(endTime),
       };
 
       const response = await calendar.events.patch({

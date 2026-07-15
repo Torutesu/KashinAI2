@@ -113,6 +113,25 @@ and `readSelectedCode`). But several serious gaps block productization.
 
 ## 6. Changelog
 
+- **2026-07-15** — Remaining reliability bugs fixed:
+  - **SelectedTextCollector no longer clobbers the clipboard**: Linux reads the
+    PRIMARY selection directly (X11 `xclip -selection primary`, Wayland
+    `wl-paste --primary`) — no synthetic Ctrl+C at all; macOS/Windows still
+    simulate a copy but now save and restore the clipboard around it. Adds
+    Wayland support.
+  - **Notion**: API-key guard on every method (was only `searchPages`);
+    `readPage` now extracts text from all common block types (headings, lists,
+    to-dos, quotes…) not just paragraphs; `createPage` discovers the database's
+    real title property instead of assuming it's named `Name`.
+  - **Slack**: channel lookup/search now follows cursor pagination (large
+    workspaces no longer miss channels beyond the first 200); `searchConversations`
+    uses a proper user token (`SLACK_USER_TOKEN`) and returns a clear message
+    instead of failing opaquely with a bot token.
+  - **Calendar**: created/updated events attach `CALENDAR_TIMEZONE` (IANA tz)
+    when set, avoiding ambiguous bare datetimes.
+  - **GitHub**: use the current `Bearer` auth scheme.
+  - `.env.example` documents the new optional vars. Typecheck + 18 tests green.
+
 - **2026-07-15** — P2 test + CI foundation landed:
   - First automated tests (`tests/`, Node's built-in runner via tsx): input
     validation (header sanitization + URL allowlist), tool-selection logic,
