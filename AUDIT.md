@@ -113,6 +113,15 @@ and `readSelectedCode`). But several serious gaps block productization.
 
 ## 6. Changelog
 
+- **2026-07-15** — P2 test + CI foundation landed:
+  - First automated tests (`tests/`, Node's built-in runner via tsx): input
+    validation (header sanitization + URL allowlist), tool-selection logic,
+    API-token auth + CORS allowlist, and binary presence check — 18 tests,
+    focused on the P0/P1 behavior so it can't silently regress.
+  - `npm run test` and `npm run typecheck` scripts.
+  - GitHub Actions CI (`.github/workflows/ci.yml`): install → prisma generate →
+    typecheck → test on every push/PR.
+
 - **2026-07-15** — P1 reliability fixes landed:
   - **Google token auto-refresh**: new shared `src/auth/googleClient.ts` used by
     Gmail, Calendar, and the calendar collector — auto-refreshes the access
