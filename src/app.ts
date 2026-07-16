@@ -10,6 +10,7 @@ import { ActionExecutor } from './actions/ActionExecutor';
 import { createVoiceRoutes } from './voice/VoiceRoutes'; //
 import { getToolEmbeddingCorpus } from './llm/Toolregistry';
 import { requireApiToken, corsOriginCheck } from './middleware/auth';
+import { PrismaConversationStore } from './memory/PrismaConversationStore';
 
 const app = express();
 app.use(cors({ origin: corsOriginCheck }));
@@ -20,7 +21,12 @@ app.use(express.json({ limit: '1mb' }));
 // Dependency Injection (Singletons) — memoryService is shared process-wide.
 const retrieverService = new RetrieverService(memoryService);
 const llmProvider = new GeminiProvider(process.env.GEMINI_API_KEY || '');
-const orchestratorService = new OrchestratorService(retrieverService, llmProvider, memoryService);
+const orchestratorService = new OrchestratorService(
+  retrieverService,
+  llmProvider,
+  memoryService,
+  new PrismaConversationStore()
+);
 const actionExecutor = new ActionExecutor();
 
 (async () => {

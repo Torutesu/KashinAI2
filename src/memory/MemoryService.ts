@@ -79,6 +79,35 @@ export class MemoryService {
     }
   }
 
+  /**
+   * Keyword (exact-substring) search across the text-bearing SQLite tables.
+   * Complements vector search in the hybrid retriever — catches exact terms
+   * (names, IDs, error codes) that embeddings can miss.
+   */
+  async keywordSearch(query: string, limit: number = 5): Promise<{ text: string; type: string; timestamp: string }[]> {
+    const q = query.trim();
+    if (!q) return [];
+    try {
+      const [clips, selected, browser, slack, ocr] = await Promise.all([
+        prisma.clipboardHistory.findMany({ where: { content: { contains: q } }, take: limit, orderBy: { timestamp: 'desc' } }),
+        prisma.selectedText.findMany({ where: { text: { contains: q } }, take: limit, orderBy: { timestamp: 'desc' } }),
+        prisma.browserHistory.findMany({ where: { OR: [{ title: { contains: q } }, { url: { contains: q } }] }, take: limit, orderBy: { timestamp: 'desc' } }),
+        prisma.slackMessage.findMany({ where: { text: { contains: q } }, take: limit, orderBy: { timestamp: 'desc' } }),
+        prisma.screenOCR.findMany({ where: { text: { contains: q } }, take: limit, orderBy: { timestamp: 'desc' } }),
+      ]);
+      const out: { text: string; type: string; timestamp: string }[] = [];
+      clips.forEach((r) => out.push({ text: r.content, type: 'CLIPBOARD', timestamp: r.timestamp.toISOString() }));
+      selected.forEach((r) => out.push({ text: r.text, type: 'SELECTED_TEXT', timestamp: r.timestamp.toISOString() }));
+      browser.forEach((r) => out.push({ text: `${r.title} (${r.url})`, type: 'BROWSER', timestamp: r.timestamp.toISOString() }));
+      slack.forEach((r) => out.push({ text: r.text, type: 'SLACK', timestamp: r.timestamp.toISOString() }));
+      ocr.forEach((r) => out.push({ text: r.text, type: 'OCR', timestamp: r.timestamp.toISOString() }));
+      return out;
+    } catch (error) {
+      console.error('[MemoryService] keywordSearch failed:', error);
+      return [];
+    }
+  }
+
   // Upgraded to use Vector Search instead of SQL LIKE
   async searchMemory(query: string) {
     try {

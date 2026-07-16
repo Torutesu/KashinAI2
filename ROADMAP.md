@@ -43,8 +43,9 @@ confirmation gate on destructive actions.
 
 ### Product / infra
 - **Multi-user / real auth model** (currently one shared token, one identity).
-- **Durable conversation history** (in-memory today; lost on restart). → Persist
-  to SQLite keyed by session.
+- ~~**Durable conversation history** (in-memory today; lost on restart).~~
+  **Done** — `ConversationStore` abstraction with a SQLite-backed
+  `PrismaConversationStore` (in-memory default for tests).
 - **Rate limiting** on the HTTP API.
 - **Config validation** (fail fast on missing/invalid env with a schema).
 - **Dockerfile + compose** for reproducible deploys.
@@ -71,7 +72,9 @@ confirmation gate on destructive actions.
 4. **Persist conversation history** to SQLite.
 
 ### Phase B — Smarter retrieval & proactivity
-5. **Hybrid retrieval**: combine keyword + vector + recency, with a rerank pass.
+5. ~~**Hybrid retrieval**: combine keyword + vector + recency, with a rerank pass.~~
+   **Done** — `src/retriever/ranking.ts` merges vector + keyword candidates and
+   reranks by relevance + recency (dual-source bonus); wired into RetrieverService.
 6. **Embed more sources** (app/vscode activity) with noise filtering.
 7. **Proactive digests**: "what did I work on today", scheduled summaries,
    surfaced suggestions based on current context.
