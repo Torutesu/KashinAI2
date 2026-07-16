@@ -19,10 +19,9 @@ function setEnv(t: any, key: string, value: string | undefined) {
   });
 }
 
-test('sendMessage requires a bot token', async (t) => {
+test('sendMessage throws when no bot token is set', async (t) => {
   setEnv(t, 'SLACK_BOT_TOKEN', undefined);
-  const out = await new SlackIntegration().sendMessage('#general', 'hi');
-  assert.match(out, /SLACK_BOT_TOKEN not set/);
+  await assert.rejects(() => new SlackIntegration().sendMessage('#general', 'hi'), /SLACK_BOT_TOKEN not set/);
 });
 
 test('sendMessage posts to a channel id without a lookup', async (t) => {
@@ -54,9 +53,8 @@ test('searchChannels follows cursor pagination', async (t) => {
   assert.match(out, /C2/); // second page was fetched
 });
 
-test('searchConversations requires a user token', async (t) => {
+test('searchConversations throws without a user token', async (t) => {
   setEnv(t, 'SLACK_BOT_TOKEN', 'xoxb-test');
   setEnv(t, 'SLACK_USER_TOKEN', undefined);
-  const out = await new SlackIntegration().searchConversations('deploy');
-  assert.match(out, /SLACK_USER_TOKEN/);
+  await assert.rejects(() => new SlackIntegration().searchConversations('deploy'), /SLACK_USER_TOKEN/);
 });

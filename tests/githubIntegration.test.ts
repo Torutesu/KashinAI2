@@ -18,10 +18,9 @@ function withToken(t: any, token: string | undefined) {
   });
 }
 
-test('readIssues requires a token', async (t) => {
+test('readIssues throws when no token is set', async (t) => {
   withToken(t, undefined);
-  const out = await new GithubIntegration().readIssues('a/b');
-  assert.match(out, /GITHUB_TOKEN not set/);
+  await assert.rejects(() => new GithubIntegration().readIssues('a/b'), /GITHUB_TOKEN not set/);
 });
 
 test('readIssues filters out pull requests', async (t) => {
@@ -51,12 +50,11 @@ test('createIssue posts and reports success', async (t) => {
   assert.match(out, /Successfully created GitHub issue in a\/b/);
 });
 
-test('readIssues surfaces errors as a string', async (t) => {
+test('readIssues throws a typed error on API failure', async (t) => {
   withToken(t, 'tok');
   const gh = new GithubIntegration();
   t.mock.method(axios, 'get', async () => {
     throw new Error('boom');
   });
-  const out = await gh.readIssues('a/b');
-  assert.match(out, /Error reading issues: boom/);
+  await assert.rejects(() => gh.readIssues('a/b'), /Failed to read issues: boom/);
 });

@@ -16,17 +16,12 @@ function withoutKey(t: any) {
   });
 }
 
-test('every method guards a missing NOTION_API_KEY', async (t) => {
+test('every method throws when NOTION_API_KEY is missing', async (t) => {
   withoutKey(t);
   const n = new NotionIntegration();
-  const results = await Promise.all([
-    n.searchPages('q'),
-    n.readPage('id'),
-    n.createPage('db', 'title'),
-    n.editPage('id', 'text'),
-    n.updateDatabase('db', 'title'),
-  ]);
-  for (const r of results) {
-    assert.match(r, /NOTION_API_KEY not set/);
-  }
+  await assert.rejects(() => n.searchPages('q'), /NOTION_API_KEY not set/);
+  await assert.rejects(() => n.readPage('id'), /NOTION_API_KEY not set/);
+  await assert.rejects(() => n.createPage('db', 'title'), /NOTION_API_KEY not set/);
+  await assert.rejects(() => n.editPage('id', 'text'), /NOTION_API_KEY not set/);
+  await assert.rejects(() => n.updateDatabase('db', 'title'), /NOTION_API_KEY not set/);
 });
