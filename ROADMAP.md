@@ -22,12 +22,15 @@ confirmation gate on destructive actions.
 ## 2. Known gaps (not yet addressed)
 
 ### Correctness / robustness
-- **Errors as strings.** Integrations return human strings instead of throwing
-  typed errors, so callers/the LLM can't reliably branch on success/failure.
-  → Introduce a `Result<T>` (or throw + structured catch) across integrations.
-- **Gemini function-response role unused.** The agentic loop feeds tool results
-  back as plain user text rather than proper `functionResponse` parts, which
-  weakens multi-step tool reasoning. → Use the SDK's function-calling round-trip.
+- **Errors as strings** — *partly addressed.* `ActionExecutor.execute` now
+  returns a typed `ToolResult { ok, message }` and the orchestrator branches on
+  `ok` (failures are marked `[FAILED]` back to the model). Remaining: push the
+  typed result down into the individual integrations (they still return "Error…"
+  strings internally, which `ToolResult` classifies by convention).
+- **Gemini function-response role** — *partly addressed.* Structured tool
+  results are now fed back with explicit success/failure. Remaining: use the
+  SDK's real `functionCall`/`functionResponse` parts (needs a live Gemini key to
+  validate the wire format) instead of the text-based round-trip.
 - **VS Code live features are stubs.** `getCursorPosition` / `readSelectedCode`
   return placeholders — they need a companion VS Code extension over a local
   socket. → Build the extension + a small WS channel.
@@ -64,12 +67,13 @@ confirmation gate on destructive actions.
 ## 3. Phased plan for deepening features
 
 ### Phase A — Make the core excellent (small, high-value)
-1. **Typed errors** across integrations (`Result<T>`), surfaced consistently to
-   the LLM and API. *(enables everything below to reason about failures)*
+1. ~~**Typed errors** at the action boundary (`ToolResult`), surfaced to the LLM
+   and API.~~ **Done (boundary)** — remaining: propagate into integrations.
 2. **Proper Gemini function-calling round-trip** (functionResponse parts) —
-   better multi-tool tasks.
+   *structured results + failure markers done; real functionResponse parts
+   pending (needs a live key to validate).* 
 3. **Streaming `/chat`** via SSE for responsive UX.
-4. **Persist conversation history** to SQLite.
+4. ~~**Persist conversation history** to SQLite.~~ **Done.**
 
 ### Phase B — Smarter retrieval & proactivity
 5. ~~**Hybrid retrieval**: combine keyword + vector + recency, with a rerank pass.~~

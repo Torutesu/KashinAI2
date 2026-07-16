@@ -12,6 +12,7 @@ import { CalendarIntegration } from '../integrations/CalendarIntegration';
 import { NotionIntegration } from '../integrations/NotionIntegration';
 import { BrowserAutomationIntegration } from '../integrations/BrowserAutomationIntegration';
 import { VSCodeIntegration } from '../integrations/VSCodeIntegration';
+import { ToolResult } from '../types/result';
 
 const execFileAsync = promisify(execFile);
 
@@ -34,7 +35,18 @@ export class ActionExecutor {
     this.vscode = new VSCodeIntegration();
   }
 
-  async execute(toolName: string, args: Record<string, string | number | boolean>): Promise<string> {
+  /**
+   * Execute a tool and return a typed result. Failure is detected from a thrown
+   * error or from the integrations' consistent "Error…" message convention, so
+   * the caller (the LLM loop) can branch on `ok` instead of sniffing prose.
+   */
+  async execute(toolName: string, args: Record<string, string | number | boolean>): Promise<ToolResult> {
+    const message = await this.executeRaw(toolName, args);
+    const ok = !/^\s*error\b/i.test(message);
+    return { ok, message };
+  }
+
+  private async executeRaw(toolName: string, args: Record<string, string | number | boolean>): Promise<string> {
     try {
       switch (toolName) {
         // Local OS Actions

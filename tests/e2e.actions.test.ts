@@ -29,7 +29,7 @@ before(async () => {
     const { toolName, args } = req.body || {};
     if (!toolName) return res.status(400).json({ error: 'toolName is required' });
     const result = await executor.execute(toolName, args || {});
-    res.json({ result });
+    res.json({ result: result.message, ok: result.ok });
   });
 
   await new Promise<void>((resolve) => {
@@ -70,8 +70,9 @@ test('action layer blocks an unsafe (non-http) URL', async () => {
     body: JSON.stringify({ toolName: 'open_browser_url', args: { url: 'file:///etc/passwd' } }),
   });
   assert.equal(res.status, 200);
-  const body = (await res.json()) as { result: string };
+  const body = (await res.json()) as { result: string; ok: boolean };
   assert.match(body.result, /Invalid URL/i);
+  assert.equal(body.ok, false);
 });
 
 test('unknown tool returns a not-supported message', async () => {

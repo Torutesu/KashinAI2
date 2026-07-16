@@ -93,7 +93,7 @@ app.post('/actions/execute', requireApiToken, validateBody, async (req: Request,
   const { toolName, args } = req.body;
   if (!toolName) return res.status(400).json({ error: 'toolName is required' });
   const result = await actionExecutor.execute(toolName, args || {});
-  res.json({ result });
+  res.json({ result: result.message, ok: result.ok });
 });
 
 // --- Memory APIs ---

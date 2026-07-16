@@ -41,9 +41,11 @@ export class OrchestratorService {
     private memoryService: MemoryService,
     // Per-session conversation history. Defaults to in-memory; app.ts injects a
     // Prisma-backed store so history survives restarts.
-    private conversationStore: ConversationStore = new InMemoryConversationStore()
+    private conversationStore: ConversationStore = new InMemoryConversationStore(),
+    // Injectable so tests can drive the tool loop with a fake executor.
+    actionExecutor: ActionExecutor = new ActionExecutor()
   ) {
-    this.actionExecutor = new ActionExecutor();
+    this.actionExecutor = actionExecutor;
   }
 
   async processPrompt(prompt: string, sessionId: string = 'default'): Promise<string> {
@@ -145,7 +147,10 @@ export class OrchestratorService {
     for (const call of calls) {
       console.log(`[Orchestrator] Executing tool: ${call.name} with args:`, call.args);
       const result = await this.actionExecutor.execute(call.name, call.args);
-      executionResults += `- ${call.name}: ${result}\n`;
+      // Mark failures explicitly so the model can recover on the next step
+      // instead of assuming the action succeeded.
+      const prefix = result.ok ? '' : '[FAILED] ';
+      executionResults += `- ${call.name}: ${prefix}${result.message}\n`;
     }
     return executionResults;
   }
