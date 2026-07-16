@@ -55,7 +55,9 @@ confirmation gate on destructive actions.
   `src/config.ts` (`assertValidConfig` at startup).
 - **Dockerfile + compose** for reproducible deploys.
 - **Graceful shutdown flush** of pending writes; **/ready** probe.
-- **Structured logging** (pino/winston) with levels, replacing console.*.
+- ~~**Structured logging** with levels, replacing console.*.~~ **Done (core)** —
+  leveled logger (`LOG_LEVEL`/`LOG_FORMAT`, `src/utils/logger.ts`), adopted at
+  the entry points; remaining console.* can migrate incrementally.
 - **Metrics** (basic counters: events collected, tool calls, errors).
 
 ### Testing
