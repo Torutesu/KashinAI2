@@ -19,4 +19,5 @@ lancedb/
 
 # Compiled TypeScript output
 dist/
+kashinai-vscode/out/
 

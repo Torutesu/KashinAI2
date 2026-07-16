@@ -12,7 +12,7 @@ import { CalendarIntegration } from '../integrations/CalendarIntegration';
 import { NotionIntegration } from '../integrations/NotionIntegration';
 import { BrowserAutomationIntegration } from '../integrations/BrowserAutomationIntegration';
 import { VSCodeIntegration } from '../integrations/VSCodeIntegration';
-import { ToolResult } from '../types/result';
+import { ToolResult, IntegrationError } from '../types/result';
 
 const execFileAsync = promisify(execFile);
 
@@ -36,19 +36,22 @@ export class ActionExecutor {
   }
 
   /**
-   * Execute a tool and return a typed result. Failure is detected from a thrown
-   * error or from the integrations' consistent "Error…" message convention, so
-   * the caller (the LLM loop) can branch on `ok` instead of sniffing prose.
+   * Execute a tool and return a typed result. A thrown IntegrationError (or any
+   * Error) becomes ok:false; integrations not yet migrated to throwing still use
+   * the legacy "Error…" string convention, which is classified as a fallback.
    */
   async execute(toolName: string, args: Record<string, string | number | boolean>): Promise<ToolResult> {
-    const message = await this.executeRaw(toolName, args);
-    const ok = !/^\s*error\b/i.test(message);
-    return { ok, message };
+    try {
+      const message = await this.executeRaw(toolName, args);
+      const ok = !/^\s*error\b/i.test(message);
+      return { ok, message };
+    } catch (error) {
+      return { ok: false, message: error instanceof Error ? error.message : String(error) };
+    }
   }
 
   private async executeRaw(toolName: string, args: Record<string, string | number | boolean>): Promise<string> {
-    try {
-      switch (toolName) {
+    switch (toolName) {
         // Local OS Actions
         case 'open_browser_url':
           return await this.openUrl(String(args.url));
@@ -149,18 +152,15 @@ export class ActionExecutor {
         case 'vscode_read_selected_code': return await this.vscode.readSelectedCode();
 
         default:
-          return `Error: Tool '${toolName}' is not supported.`;
+          throw new IntegrationError(`Tool '${toolName}' is not supported.`);
       }
-    } catch (error) {
-      return `Error executing ${toolName}: ${error instanceof Error ? error.message : String(error)}`;
-    }
   }
 
   private async openUrl(url: string): Promise<string> {
     // Validate the scheme (blocks file://, javascript:, etc.) AND pass the URL
     // as a single argv entry via execFile so no shell can interpret it.
     if (!isSafeHttpUrl(url)) {
-      return "Error: Invalid URL. Must be an http:// or https:// URL.";
+      throw new IntegrationError('Invalid URL. Must be an http:// or https:// URL.');
     }
 
     const platform = process.platform;
@@ -172,7 +172,7 @@ export class ActionExecutor {
   }
 
   private async createDirectory(dirPath: string): Promise<string> {
-    if (!dirPath) return "Error: No path provided.";
+    if (!dirPath) throw new IntegrationError('No path provided.');
 
     const homeDir = os.homedir();
     const resolvedPath = path.resolve(homeDir, dirPath);
@@ -180,7 +180,7 @@ export class ActionExecutor {
     // Ensure the target stays inside the home directory (path.sep guards
     // against a sibling dir like `/home/userEVIL` matching a `/home/user` prefix).
     if (resolvedPath !== homeDir && !resolvedPath.startsWith(homeDir + path.sep)) {
-      return "Error: Security violation. Cannot create directories outside your home folder.";
+      throw new IntegrationError('Security violation. Cannot create directories outside your home folder.');
     }
 
     // No shell — fs.mkdir takes the path literally, so metacharacters are inert.
@@ -190,7 +190,7 @@ export class ActionExecutor {
   }
 
   private async openVsCode(filePath: string): Promise<string> {
-    if (!filePath) return "Error: No file path provided.";
+    if (!filePath) throw new IntegrationError('No file path provided.');
     try {
       if (process.platform === 'win32') {
         await execFileAsync('cmd', ['/c', 'code', filePath], { shell: false });
@@ -199,7 +199,7 @@ export class ActionExecutor {
       }
       return `Successfully opened ${filePath} in VS Code.`;
     } catch (error) {
-      return `Error opening VS Code. Ensure the 'code' command is installed in your PATH.`;
+      throw new IntegrationError("Could not open VS Code. Ensure the 'code' command is on your PATH", error);
     }
   }
 }

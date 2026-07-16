@@ -1,0 +1,36 @@
+{
+  "name": "kashinai-vscode",
+  "displayName": "KashinAI Companion",
+  "description": "Reports live cursor position and selected code to the local KashinAI backend.",
+  "version": "0.1.0",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "KashinAI",
+      "properties": {
+        "kashinai.backendUrl": {
+          "type": "string",
+          "default": "http://localhost:3001",
+          "description": "Base URL of the local KashinAI backend."
+        },
+        "kashinai.apiToken": {
+          "type": "string",
+          "default": "",
+          "description": "API token (must match the backend's API_TOKEN)."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.80.0",
+    "typescript": "^5.4.0"
+  }
+}

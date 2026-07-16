@@ -13,6 +13,7 @@ import { memoryService } from './memory/instance';
 import { WhisperService } from './voice/WhisperService'; // ⬅️ NEW
 import { checkExternalBinaries } from './utils/binaryCheck';
 import { assertValidConfig } from './config';
+import { log } from './utils/logger';
 
 // Validate configuration before anything else (throws on hard errors).
 assertValidConfig();
@@ -36,7 +37,7 @@ const collectors = [
   new ScreenOCRCollector(memoryService)
 ];
 
-console.log('Starting background collectors...');
+log.info('Starting background collectors...');
 collectors.forEach(c => c.start());
 
 // Retention policy: periodically prune memories older than MEMORY_RETENTION_DAYS
@@ -52,20 +53,20 @@ if (RETENTION_DAYS > 0) {
 }
 
 app.listen(PORT, () => {
-  console.log(`AI Context Engine running on http://localhost:${PORT}`);
+  log.info(`AI Context Engine running on http://localhost:${PORT}`);
 });
 
 WhisperService.preload().catch((err) => {
-  console.warn('[Server] Whisper model preload failed, will retry on first /voice/query request:', err?.message || err);
+  log.warn('[Server] Whisper model preload failed, will retry on first /voice/query request:', err?.message || err);
 });
 
 process.on('SIGINT', () => {
-  console.log('\nShutting down collectors...');
+  log.info('Shutting down collectors...');
   collectors.forEach(c => c.stop());
   if (pruneTimer) clearInterval(pruneTimer);
   process.exit(0);
 });
 
 process.on('unhandledRejection', (err) => {
-  console.error('Unhandled Rejection:', err);
+  log.error('Unhandled Rejection:', err);
 });
