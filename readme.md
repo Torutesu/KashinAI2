@@ -1,336 +1,227 @@
-# Local AI Context Engine Backend
+# KashinAI2 — Local AI Context Engine
 
-A cross-platform AI backend that continuously understands your computer activity, stores contextual memory locally, retrieves relevant information using RAG, and allows an LLM (Google Gemini) to interact with both your operating system and cloud applications.
+A local-first AI backend that continuously understands your computer activity,
+stores contextual memory on your machine, retrieves relevant information with
+RAG, and lets an LLM (Google Gemini) act on your OS and cloud apps through
+tool/function calling. Includes a Chrome extension and offline voice input.
+
+> **Status:** working prototype hardened for security, reliability, and tests.
+> See [`AUDIT.md`](./AUDIT.md) for the full audit and [`ROADMAP.md`](./ROADMAP.md)
+> for what's planned next.
 
 ---
 
 ## Features
 
-### Context Collection
+### Context collection
+Background collectors capture activity (each degrades gracefully if its
+external tool is missing — see the startup binary check):
+Active window · Clipboard · Browser history · Selected text · Screen OCR ·
+Slack · Google Calendar · VS Code.
 
-Runs background collectors that continuously capture computer context.
+### Local memory (RAG)
+SQLite + Prisma for the timeline, LanceDB + Transformers.js (all-MiniLM-L6-v2)
+for semantic vector search — all local, nothing uploaded.
 
-- Active Application & Window
-- Clipboard History
-- Browser History
-- Selected Text
-- Screen OCR
-- Slack Messages
-- Google Calendar Events
-- VS Code Context
+### LLM orchestration
+Google Gemini with automatic tool selection (keyword + semantic), an agentic
+multi-step loop, and **per-session multi-turn conversation history**.
 
----
+### Action layer
+Local: open URLs, create directories, open files in VS Code, browser
+automation (Playwright). Cloud: Slack, Gmail, Google Calendar, GitHub, Notion.
+**Destructive actions require an explicit yes/no confirmation.**
 
-### Local Memory (RAG)
+### Security & privacy
+- **API-token auth** on state-changing routes + configurable CORS allowlist.
+- **Secret redaction** of captured clipboard/OCR/selected-text before storage.
+- **Memory retention** pruning so local stores don't grow unbounded.
+- Shell-injection-safe action execution; email-header & URL-scheme validation.
 
-Stores all collected context locally.
+### Voice
+Offline transcription (ffmpeg-static + local Whisper via `@xenova/transformers`).
 
-- SQLite + Prisma
-- LanceDB Vector Database
-- Transformers.js Embeddings
-- Semantic Search
-- Context Retrieval
-
----
-
-### LLM Orchestration
-
-- Google Gemini Integration
-- Tool / Function Calling
-- Context-aware Prompting
-- Automatic Tool Selection
+### Cross-platform
+macOS · Linux (X11 & Wayland) · Windows.
 
 ---
 
-### Action Layer
-
-Execute actions locally and through cloud integrations.
-
-#### Local Actions
-
-- Open Browser URLs
-- Create Directories
-- Open Files/Folders in VS Code
-- Browser Automation (Playwright)
-
-#### Cloud Integrations
-
-- Slack
-- Gmail
-- Google Calendar
-- GitHub
-- Notion
-
----
-
-### Cross Platform Support
-
-- macOS
-- Linux (X11 & Wayland)
-- Windows
-
----
-
-## Tech Stack
+## Tech stack
 
 | Technology | Purpose |
 |------------|---------|
-| Node.js | Backend Runtime |
+| Node.js / TypeScript | Backend runtime & language |
 | Express | REST API |
-| TypeScript | Programming Language |
-| Prisma | ORM |
-| SQLite | Local Database |
-| LanceDB | Vector Database |
-| Transformers.js | Embedding Model |
+| Prisma + SQLite | Timeline store |
+| LanceDB + Transformers.js | Vector store & embeddings |
 | Google Gemini | LLM |
-| Playwright | Browser Automation |
+| Playwright | Browser automation |
+| Whisper (@xenova/transformers) | Local speech-to-text |
 
 ---
 
 ## Prerequisites
 
-Install the following before running the project.
-
-### Common
-
-- Node.js 18+
-- npm
-
-### Linux
-
-```bash
-sudo apt install sqlite3 xdotool xclip wl-clipboard tesseract-ocr gnome-screenshot
-```
-
-### macOS
-
-```bash
-brew install sqlite tesseract
-```
-
-### Windows
-
-Install:
-
-- Tesseract OCR
-
-Make sure it is added to your PATH.
-
-Also ensure the VS Code `code` command is available in PATH.
+- Node.js 18+ and npm
+- Platform tools (optional — the server warns at startup about any missing one):
+  - **Linux:** `sudo apt install sqlite3 xdotool xclip wl-clipboard tesseract-ocr gnome-screenshot`
+  - **macOS:** `brew install sqlite tesseract`
+  - **Windows:** Tesseract OCR on PATH; the VS Code `code` command on PATH.
 
 ---
 
 ## Installation
 
-Clone the repository.
-
-```bash
-git clone <repository-url>
-cd ai-context-engine
-```
-
-Install dependencies.
-
 ```bash
 npm install
-```
-
-Install Playwright.
-
-```bash
-npx playwright install chromium
-```
-
-Create the database.
-
-```bash
+npx prisma generate
 npx prisma migrate dev --name init
+npx playwright install chromium   # only if you use browser automation
 ```
 
----
-
-## Environment Variables
-
-Create a `.env` file in the project root.
-
-```env
-DATABASE_URL="file:./dev.db"
-
-PORT=3001
-
-GEMINI_API_KEY=your_google_gemini_api_key
-
-SLACK_BOT_TOKEN=
-SLACK_CHANNEL_ID=
-
-GITHUB_TOKEN=
-
-NOTION_API_KEY=
-```
-
-Google integrations require OAuth authentication.
-
----
-
-## Google OAuth Setup
-
-1. Open Google Cloud Console.
-2. Create a project.
-3. Enable:
-   - Gmail API
-   - Google Calendar API
-4. Configure the OAuth Consent Screen.
-5. Add yourself as a Test User.
-6. Create an OAuth Client ID.
-7. Choose **Desktop Application**.
-8. Download the credentials.
-9. Rename the file to:
-
-```
-google_credentials.json
-```
-
-10. Place it in the project root.
-
-Generate the OAuth token.
+Create a `.env` from the template:
 
 ```bash
-npx ts-node src/auth/googleAuth.ts
+cp .env.example .env
 ```
 
-After successful authentication a file named
+Then fill it in. Key variables (see `.env.example` for the full list):
 
-```
-google_token.json
-```
-
-will be created.
+| Variable | Purpose |
+|----------|---------|
+| `GEMINI_API_KEY` | Google Gemini API key (required for `/chat`) |
+| `API_TOKEN` | **Set this.** Shared token required on state-changing routes. If unset, those routes run unauthenticated (dev only) and the server warns. |
+| `ALLOWED_ORIGINS` | Comma-separated CORS allowlist (optional) |
+| `MEMORY_RETENTION_DAYS` | Days to keep memories before pruning (default 30; 0 disables) |
+| `CALENDAR_TIMEZONE` | IANA tz for created/updated calendar events (optional) |
+| `SLACK_BOT_TOKEN` / `SLACK_USER_TOKEN` | Slack bot token; user token only needed for message search |
+| `GITHUB_TOKEN`, `NOTION_API_KEY` | Integration credentials |
+| `DISABLE_SECRET_REDACTION` | Set `true` to disable capture-time secret redaction |
 
 ---
 
-## Running the Application
+## Google OAuth setup
 
-Start the backend.
+1. In Google Cloud Console, create a project and enable the **Gmail API** and
+   **Google Calendar API**.
+2. Configure the OAuth consent screen and add yourself as a test user.
+3. Create an OAuth Client ID of type **Desktop Application**, download it, and
+   save it as `google_credentials.json` in the project root (or point
+   `GOOGLE_CREDENTIALS_PATH` at it).
+4. Generate a token:
+
+   ```bash
+   npx ts-node src/auth/googleAuth.ts
+   ```
+
+   This writes `google_token.json`. The backend then auto-refreshes and
+   persists the access token as needed.
+
+---
+
+## Running
 
 ```bash
-npm run dev
+npm run dev      # tsx watch (development)
+# or
+npm run build && npm start
 ```
 
-The server runs on:
-
-```
-http://localhost:3001
-```
+Server runs on `http://localhost:3001`.
 
 ---
 
 ## REST API
 
-### Health
+State-changing routes (`/chat`, `/actions/execute`, `/memory/store`,
+`/voice/query`) require the `x-api-token` header (or `Authorization: Bearer …`)
+when `API_TOKEN` is set. Pass an optional `x-session-id` header on `/chat` and
+`/voice/query` to keep separate conversation histories.
 
 ```
-GET /health
+GET  /health
+GET  /context/current
+GET  /context/recent?limit=10
+GET  /memory/search?query=<q>
+POST /memory/store            { type, content, app?, window? }
+POST /retrieve                { prompt }
+POST /chat                    { prompt, sessionId? }
+POST /llm/query               { prompt }
+POST /actions/execute         { toolName, args }
+POST /voice/query             multipart: audio=<file>
 ```
 
----
-
-### Context
-
-```
-GET /context/current
-GET /context/recent?limit=10
-```
-
----
-
-### Memory
-
-```
-GET /memory/search?query=<query>
-POST /memory/store
-```
-
----
-
-### AI
-
-```
-POST /chat
-POST /retrieve
-POST /llm/query
-```
-
----
-
-### Actions
-
-```
-POST /actions/execute
-```
-
----
-
-## Example Requests
-
-### Ask the AI
+### Example
 
 ```bash
 curl -X POST http://localhost:3001/chat \
--H "Content-Type: application/json" \
--d '{"prompt":"What is my current VS Code workspace?"}'
-```
-
-### Browser Automation
-
-```bash
-curl -X POST http://localhost:3001/chat \
--H "Content-Type: application/json" \
--d '{"prompt":"Open GitHub in my browser."}'
+  -H "Content-Type: application/json" \
+  -H "x-api-token: $API_TOKEN" \
+  -d '{"prompt":"What is my current VS Code workspace?"}'
 ```
 
 ---
 
-## Project Structure
+## Chrome extension
+
+Load `kashinai-extension/` as an unpacked extension. Store your API token so
+the extension can authenticate (run in the extension's service-worker console):
+
+```js
+chrome.storage.local.set({ kashinaiToken: '<your API_TOKEN>' });
+```
+
+Trigger it on any page with `Ctrl+Shift+Space` (`Cmd+Shift+Space` on macOS).
+
+---
+
+## Testing
+
+```bash
+npm run typecheck   # tsc --noEmit
+npm test            # node test runner via tsx
+```
+
+CI runs install → prisma generate → typecheck → test on every push/PR
+(`.github/workflows/ci.yml`).
+
+---
+
+## Project structure
 
 ```
 src/
-├── actions/
-├── auth/
-├── collectors/
-├── db/
-├── integrations/
-├── llm/
-├── memory/
-├── retriever/
-├── types/
-├── app.ts
-└── server.ts
+├── actions/        ActionExecutor (tool dispatch)
+├── auth/           googleAuth (OAuth flow) + googleClient (shared refresh)
+├── collectors/     background context collectors
+├── db/             Prisma client
+├── integrations/   Slack, Gmail, Calendar, GitHub, Notion, Browser, VS Code
+├── llm/            GeminiProvider, OrchestratorService, Toolregistry
+├── memory/         MemoryService, VectorService, retention, shared instance
+├── middleware/     auth (API token + CORS)
+├── retriever/      RetrieverService (RAG assembly)
+├── security/       inputValidation, redaction
+├── utils/          logger, binaryCheck
+├── voice/          Whisper transcription pipeline
+├── app.ts          Express app
+└── server.ts       entrypoint (collectors + retention scheduler)
 
-prisma/
+tests/              unit + e2e tests
+prisma/             schema & migrations
+kashinai-extension/ Chrome extension
 ```
 
 ---
 
-## Security
+## Security notes
 
-- Local-first architecture
-- SQLite local storage
-- OAuth authentication
-- API key-based integrations
-- User context remains on the local machine
-- Controlled tool execution
-
----
-
-## Notes
-
-- macOS Accessibility API requires macOS.
-- AppleScript functionality requires macOS.
-- Browser automation is implemented using Playwright.
-- All context is stored locally before retrieval.
+- Local-first: context stays on your machine.
+- Set `API_TOKEN` before exposing the server to anything but localhost.
+- Captured content is secret-redacted before storage, but treat the local
+  SQLite/LanceDB stores as sensitive regardless.
 
 ---
 
 ## License
 
-MIT License
+MIT
