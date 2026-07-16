@@ -81,7 +81,10 @@ confirmation gate on destructive actions.
 5. ~~**Hybrid retrieval**: combine keyword + vector + recency, with a rerank pass.~~
    **Done** — `src/retriever/ranking.ts` merges vector + keyword candidates and
    reranks by relevance + recency (dual-source bonus); wired into RetrieverService.
-6. **Embed more sources** (app/vscode activity) with noise filtering.
+6. ~~**Embed more sources** (app/vscode activity) with noise filtering.~~
+   **Done** — app & VS Code activity are now embedded via a shared
+   `maybeEmbed` that drops low-signal (`src/memory/noiseFilter.ts`) and
+   consecutive-duplicate text; existing sources route through it too.
 7. **Proactive digests**: "what did I work on today", scheduled summaries,
    surfaced suggestions based on current context.
 
