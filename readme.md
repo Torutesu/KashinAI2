@@ -147,6 +147,7 @@ GET  /memory/search?query=<q>
 POST /memory/store            { type, content, app?, window? }
 POST /retrieve                { prompt }
 POST /chat                    { prompt, sessionId? }
+POST /chat/stream             { prompt, sessionId? }  (Server-Sent Events)
 POST /llm/query               { prompt }
 POST /actions/execute         { toolName, args }
 POST /voice/query             multipart: audio=<file>

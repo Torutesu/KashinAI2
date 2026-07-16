@@ -4,8 +4,9 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { memoryService } from './memory/instance';
 import { RetrieverService } from './retriever/RetrieverService';
-import { GeminiProvider } from './llm/GeminiProvider';
+import { createLLMProvider } from './llm/providerFactory';
 import { OrchestratorService } from './llm/OrchestratorService';
+import { createChatStreamHandler } from './llm/chatStream';
 import { ActionExecutor } from './actions/ActionExecutor';
 import { createVoiceRoutes } from './voice/VoiceRoutes'; //
 import { getToolEmbeddingCorpus } from './llm/Toolregistry';
@@ -25,7 +26,7 @@ app.use(express.json({ limit: '1mb' }));
 
 // Dependency Injection (Singletons) — memoryService is shared process-wide.
 const retrieverService = new RetrieverService(memoryService);
-const llmProvider = new GeminiProvider(process.env.GEMINI_API_KEY || '');
+const llmProvider = createLLMProvider();
 const orchestratorService = new OrchestratorService(
   retrieverService,
   llmProvider,
@@ -92,6 +93,9 @@ app.post('/chat', requireApiToken, async (req: Request, res: Response) => {
     res.status(500).json({ error: 'LLM processing failed' });
   }
 });
+
+// --- Streaming Chat API (Server-Sent Events) ---
+app.post('/chat/stream', requireApiToken, createChatStreamHandler(orchestratorService));
 
 // --- Direct Action Execution API ---
 app.post('/actions/execute', requireApiToken, validateBody, async (req: Request, res: Response) => {

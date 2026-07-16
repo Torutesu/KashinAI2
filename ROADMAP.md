@@ -81,7 +81,9 @@ confirmation gate on destructive actions.
 2. **Proper Gemini function-calling round-trip** (functionResponse parts) —
    *structured results + failure markers done; real functionResponse parts
    pending (needs a live key to validate).* 
-3. **Streaming `/chat`** via SSE for responsive UX.
+3. ~~**Streaming `/chat`** via SSE for responsive UX.~~ **Done** — `/chat/stream`
+   emits status/tool progress events + final answer over Server-Sent Events
+   (orchestrator gained an `onEvent` hook).
 4. ~~**Persist conversation history** to SQLite.~~ **Done.**
 
 ### Phase B — Smarter retrieval & proactivity
@@ -98,8 +100,9 @@ confirmation gate on destructive actions.
 ### Phase C — Reach & extensibility
 8. ~~**VS Code companion extension** (unlocks cursor/selection features).~~
    **Done** — see `kashinai-vscode/`.
-9. **Pluggable LLM provider** (local model option behind the `LLMProvider`
-   interface; Gemini stays default).
+9. ~~**Pluggable LLM provider** behind the `LLMProvider` interface.~~
+   **Done** — `LLM_PROVIDER=gemini|openai` via `providerFactory`; OpenAI
+   provider added (`OpenAIProvider`). Local-model provider can slot in the same way.
 10. **More integrations** (Jira/Linear, Telegram/Discord) and **per-app privacy
     rules** (exclude sensitive apps from capture).
 11. **Web dashboard** to browse memory, review actions, and manage privacy.
