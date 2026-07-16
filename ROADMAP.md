@@ -81,7 +81,9 @@ confirmation gate on destructive actions.
 2. **Proper Gemini function-calling round-trip** (functionResponse parts) —
    *structured results + failure markers done; real functionResponse parts
    pending (needs a live key to validate).* 
-3. **Streaming `/chat`** via SSE for responsive UX.
+3. ~~**Streaming `/chat`** via SSE for responsive UX.~~ **Done** — `/chat/stream`
+   emits status/tool progress events + final answer over Server-Sent Events
+   (orchestrator gained an `onEvent` hook).
 4. ~~**Persist conversation history** to SQLite.~~ **Done.**
 
 ### Phase B — Smarter retrieval & proactivity

@@ -48,7 +48,11 @@ export class OrchestratorService {
     this.actionExecutor = actionExecutor;
   }
 
-  async processPrompt(prompt: string, sessionId: string = 'default'): Promise<string> {
+  async processPrompt(
+    prompt: string,
+    sessionId: string = 'default',
+    onEvent?: (event: { type: string; data: string }) => void
+  ): Promise<string> {
     // 0. Handle a pending confirmation from the previous turn (per session)
     const pending = this.pendingCallsBySession.get(sessionId);
     if (pending) {
@@ -72,6 +76,7 @@ export class OrchestratorService {
     //    keyword matching internally if the vector index isn't ready.
     const tools = await selectRelevantToolsSemantic(this.memoryService, prompt);
     console.log(`[Orchestrator] Sending ${tools.length} tool(s) to LLM: ${tools.map(t => t.name).join(', ')}`);
+    onEvent?.({ type: 'status', data: `Considering ${tools.length} tool(s).` });
 
     // 3. AGENTIC LOOP - Allows the AI to use multiple tools in sequence.
     //    Seed with the session's prior conversation so the model has context.
@@ -104,6 +109,7 @@ export class OrchestratorService {
         const safeResults = await this.runToolCalls(safeCalls);
         finalOutput += safeResults;
         toolResults += safeResults + "\n";
+        onEvent?.({ type: 'tool', data: safeResults });
       }
 
       // Execute DESTRUCTIVE calls? NO. Stop the loop and ask the user for confirmation!

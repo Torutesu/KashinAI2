@@ -6,6 +6,7 @@ import { memoryService } from './memory/instance';
 import { RetrieverService } from './retriever/RetrieverService';
 import { createLLMProvider } from './llm/providerFactory';
 import { OrchestratorService } from './llm/OrchestratorService';
+import { createChatStreamHandler } from './llm/chatStream';
 import { ActionExecutor } from './actions/ActionExecutor';
 import { createVoiceRoutes } from './voice/VoiceRoutes'; //
 import { getToolEmbeddingCorpus } from './llm/Toolregistry';
@@ -92,6 +93,9 @@ app.post('/chat', requireApiToken, async (req: Request, res: Response) => {
     res.status(500).json({ error: 'LLM processing failed' });
   }
 });
+
+// --- Streaming Chat API (Server-Sent Events) ---
+app.post('/chat/stream', requireApiToken, createChatStreamHandler(orchestratorService));
 
 // --- Direct Action Execution API ---
 app.post('/actions/execute', requireApiToken, validateBody, async (req: Request, res: Response) => {

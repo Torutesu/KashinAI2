@@ -77,6 +77,20 @@ test('a destructive tool asks for confirmation, then executes on "yes"', async (
   assert.match(second, /executed/i);
 });
 
+test('processPrompt emits progress events to onEvent (streaming hook)', async () => {
+  const orch = new OrchestratorService(
+    fakeRetriever,
+    toolThenAnswerLLM('browser_get_current_tab'),
+    fakeMemory,
+    new InMemoryConversationStore(),
+    fakeExecutor({ ok: true, message: 'Current Tab -> example.com' })
+  );
+  const events: { type: string; data: string }[] = [];
+  await orch.processPrompt('what tab', 's3', (e) => events.push(e));
+  assert.ok(events.some((e) => e.type === 'status'));
+  assert.ok(events.some((e) => e.type === 'tool'));
+});
+
 test('a destructive tool is cancelled on "no"', async () => {
   const orch = new OrchestratorService(
     fakeRetriever,
