@@ -1,11 +1,11 @@
 // src/integrations/VSCodeIntegration.ts
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import { promisify } from 'util';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 export class VSCodeIntegration {
   private getStoragePath(): string | null {
@@ -29,8 +29,16 @@ export class VSCodeIntegration {
 
   // 1. Open File
   async openFile(filePath: string): Promise<string> {
+    if (!filePath || typeof filePath !== 'string') return 'Error: No file path provided.';
     try {
-      await execAsync(`code "${filePath}"`);
+      // execFile passes the path as a single argv entry — no shell, so path
+      // contents can't break out and run arbitrary commands. On Windows the
+      // launcher is `code.cmd`, resolved via `cmd /c` (still argv-based).
+      if (process.platform === 'win32') {
+        await execFileAsync('cmd', ['/c', 'code', filePath], { shell: false });
+      } else {
+        await execFileAsync('code', [filePath], { shell: false });
+      }
       return `Successfully opened ${filePath} in VS Code.`;
     } catch (error) {
       return `Error opening VS Code. Ensure the 'code' command is installed in your PATH.`;

@@ -3,6 +3,7 @@ import path from 'path';
 import os from 'os';
 import { MemoryService } from '../memory/MemoryService';
 import { Collector } from '../types';
+import { warnThrottled } from '../utils/logger';
 
 export class VSCodeCollector implements Collector {
   private interval: NodeJS.Timeout | null = null;
@@ -42,7 +43,7 @@ export class VSCodeCollector implements Collector {
           });
         }
       } catch (error) {
-        // Silent fail
+        warnThrottled('vscode-collector', 300000, '[VSCodeCollector] poll failed:', error instanceof Error ? error.message : error);
       }
     }, 10000);
   }

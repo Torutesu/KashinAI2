@@ -1,5 +1,6 @@
 // src/integrations/BrowserAutomationIntegration.ts
 import { chromium, Browser, BrowserContext, Page } from 'playwright';
+import { isSafeHttpUrl } from '../security/inputValidation';
 
 export class BrowserAutomationIntegration {
   private browser: Browser | null = null;
@@ -22,6 +23,9 @@ export class BrowserAutomationIntegration {
 
   // 1. Navigate current tab
   async navigate(url: string): Promise<string> {
+    if (!isSafeHttpUrl(url)) {
+      return 'Error: Only http:// and https:// URLs are allowed.';
+    }
     try {
       const page = await this.init();
       await page.goto(url);
@@ -45,6 +49,9 @@ export class BrowserAutomationIntegration {
 
   // 3. Open New Tab
   async openNewTab(url: string): Promise<string> {
+    if (!isSafeHttpUrl(url)) {
+      return 'Error: Only http:// and https:// URLs are allowed.';
+    }
     try {
       if (!this.context) await this.init();
       const newPage = await this.context!.newPage();
@@ -101,7 +108,9 @@ export class BrowserAutomationIntegration {
     try {
       const page = await this.init();
       await page.fill(selector, value, { timeout: 5000 });
-      return `Successfully filled ${selector} with value: ${value}`;
+      // Do NOT echo `value` back — it may be a password or other secret that
+      // would otherwise leak into logs and the model's context.
+      return `Successfully filled ${selector}.`;
     } catch (error) {
       return `Error filling form: ${error instanceof Error ? error.message : String(error)}`;
     }

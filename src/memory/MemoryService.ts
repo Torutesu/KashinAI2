@@ -2,6 +2,12 @@
 import { prisma } from '../db/prisma';
 import { ContextEvent } from '../types';
 import { VectorService } from './VectorService';
+import { retentionCutoff } from './retention';
+import { redactSecrets } from '../security/redaction';
+
+// Content from these sources is raw user data that routinely contains secrets
+// (passwords copied to the clipboard, API keys on screen). Redact before storing.
+const REDACTED_TYPES = new Set(['CLIPBOARD', 'SELECTED_TEXT', 'SCREEN_OCR']);
 
 export class MemoryService {
   public vectorService: VectorService;
@@ -14,6 +20,16 @@ export class MemoryService {
 
   async storeEvent(event: ContextEvent) {
     try {
+      // 0. Redact obvious secrets from high-risk sources before persisting,
+      //    unless explicitly disabled.
+      if (
+        event.content &&
+        REDACTED_TYPES.has(event.type) &&
+        process.env.DISABLE_SECRET_REDACTION !== 'true'
+      ) {
+        event = { ...event, content: redactSecrets(event.content) };
+      }
+
       // 1. Save to SQLite (for recent timeline)
       if (event.type === 'APP_ACTIVITY') {
         await prisma.appActivity.create({ data: { app: event.app!, window: event.window || '' } });
@@ -81,5 +97,34 @@ export class MemoryService {
 
   async searchTools(query: string, limit: number = 6): Promise<{ name: string; distance: number }[]> {
     return this.vectorService.searchTools(query, limit);
+  }
+
+  /**
+   * Enforce the retention policy: delete SQLite rows and memory vectors older
+   * than `retentionDays`. Prevents the local stores from growing without bound.
+   */
+  async pruneOldMemories(retentionDays: number): Promise<void> {
+    if (retentionDays <= 0) return;
+    const cutoff = retentionCutoff(retentionDays, new Date());
+    const where = { timestamp: { lt: cutoff } };
+    try {
+      const results = await Promise.all([
+        prisma.appActivity.deleteMany({ where }),
+        prisma.clipboardHistory.deleteMany({ where }),
+        prisma.browserHistory.deleteMany({ where }),
+        prisma.selectedText.deleteMany({ where }),
+        prisma.slackMessage.deleteMany({ where }),
+        prisma.calendarEvent.deleteMany({ where }),
+        prisma.vSCodeActivity.deleteMany({ where }),
+        prisma.screenOCR.deleteMany({ where }),
+      ]);
+      const sqliteDeleted = results.reduce((sum, r) => sum + r.count, 0);
+      const vectorsDeleted = await this.vectorService.pruneOlderThan(cutoff.toISOString());
+      console.log(
+        `[MemoryService] Retention: pruned ${sqliteDeleted} SQLite rows and ${vectorsDeleted} vectors older than ${retentionDays}d.`
+      );
+    } catch (error) {
+      console.error('[MemoryService] Retention prune failed:', error);
+    }
   }
 }

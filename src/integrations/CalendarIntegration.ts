@@ -1,19 +1,18 @@
 // src/integrations/CalendarIntegration.ts
 import { google } from 'googleapis';
-import fs from 'fs';
-import path from 'path';
-
-const TOKEN_PATH = path.join(process.cwd(), 'google_token.json');
-const CREDENTIALS_PATH = path.join(process.cwd(), 'google_credentials.json');
+import { getGoogleAuthClient } from '../auth/googleClient';
 
 export class CalendarIntegration {
   private async getAuth() {
-    const credentials = JSON.parse(fs.readFileSync(CREDENTIALS_PATH, 'utf-8'));
-    const tokens = JSON.parse(fs.readFileSync(TOKEN_PATH, 'utf-8'));
-    const { client_secret, client_id } = credentials.installed;
-    const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, 'http://localhost');
-    oAuth2Client.setCredentials(tokens);
-    return oAuth2Client;
+    // Shared, refresh-capable client (auto-refreshes + persists the token).
+    return getGoogleAuthClient();
+  }
+
+  // Attach a timeZone when configured so a bare "2026-01-01T09:00:00" isn't
+  // interpreted in whatever timezone Google's servers happen to default to.
+  private withTimeZone(dateTime: string) {
+    const tz = process.env.CALENDAR_TIMEZONE;
+    return tz ? { dateTime, timeZone: tz } : { dateTime };
   }
 
   // 1. Create Event (Existing)
@@ -23,8 +22,8 @@ export class CalendarIntegration {
       const calendar = google.calendar({ version: 'v3', auth });
       const event = {
         summary,
-        start: { dateTime: startTime },
-        end: { dateTime: endTime },
+        start: this.withTimeZone(startTime),
+        end: this.withTimeZone(endTime),
       };
       const response = await calendar.events.insert({ calendarId: 'primary', requestBody: event });
       return `Successfully created calendar event: ${response.data.summary} (ID: ${response.data.id})`;
@@ -71,8 +70,8 @@ export class CalendarIntegration {
       const calendar = google.calendar({ version: 'v3', auth });
 
       const updatedEvent = {
-        start: { dateTime: startTime },
-        end: { dateTime: endTime },
+        start: this.withTimeZone(startTime),
+        end: this.withTimeZone(endTime),
       };
 
       const response = await calendar.events.patch({

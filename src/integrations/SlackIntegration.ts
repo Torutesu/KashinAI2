@@ -3,15 +3,37 @@ import axios from 'axios';
 
 export class SlackIntegration {
   private token: string;
+  // search.messages requires a USER token (xoxp-…); a bot token returns
+  // not_allowed_token_type. Kept separate and optional.
+  private userToken: string;
 
   private channelIdCache: Map<string, string> = new Map();
 
   constructor() {
     this.token = process.env.SLACK_BOT_TOKEN || '';
+    this.userToken = process.env.SLACK_USER_TOKEN || '';
   }
 
   private looksLikeChannelId(value: string): boolean {
     return /^[CGD][A-Z0-9]{8,}$/.test(value);
+  }
+
+  /** Fetch every channel, following Slack's cursor pagination (bounded). */
+  private async fetchAllChannels(): Promise<any[]> {
+    const channels: any[] = [];
+    let cursor: string | undefined;
+    // Cap pages so a huge workspace can't loop forever (1000/page * 20 = 20k).
+    for (let page = 0; page < 20; page++) {
+      const res = await axios.get('https://slack.com/api/conversations.list', {
+        headers: { Authorization: `Bearer ${this.token}` },
+        params: { types: 'public_channel,private_channel', limit: 1000, cursor },
+      });
+      if (!res.data.ok) throw new Error(`Slack API Error: ${res.data.error}`);
+      channels.push(...(res.data.channels || []));
+      cursor = res.data.response_metadata?.next_cursor;
+      if (!cursor) break;
+    }
+    return channels;
   }
 
   private async resolveChannelId(channel: string): Promise<string> {
@@ -21,14 +43,8 @@ export class SlackIntegration {
     const cached = this.channelIdCache.get(name);
     if (cached) return cached;
 
-    const res = await axios.get('https://slack.com/api/conversations.list', {
-      headers: { Authorization: `Bearer ${this.token}` },
-      params: { types: 'public_channel,private_channel', limit: 200 },
-    });
-
-    if (!res.data.ok) throw new Error(`Slack API Error resolving channel: ${res.data.error}`);
-
-    const match = res.data.channels.find((c: any) => c.name.toLowerCase() === name);
+    const channels = await this.fetchAllChannels();
+    const match = channels.find((c: any) => c.name.toLowerCase() === name);
     if (!match) throw new Error(`Channel not found: #${name}`);
 
     this.channelIdCache.set(name, match.id);
@@ -92,14 +108,9 @@ export class SlackIntegration {
   async searchChannels(query: string): Promise<string> {
     if (!this.token) return 'Error: SLACK_BOT_TOKEN not set in .env';
     try {
-      const res = await axios.get('https://slack.com/api/conversations.list', {
-        headers: { Authorization: `Bearer ${this.token}` },
-        params: { types: 'public_channel,private_channel', limit: 200 }
-      });
+      const channels = await this.fetchAllChannels();
 
-      if (!res.data.ok) return `Slack API Error: ${res.data.error}`;
-
-      const matching = res.data.channels.filter((c: any) =>
+      const matching = channels.filter((c: any) =>
         c.name.toLowerCase().includes(query.toLowerCase())
       );
 
@@ -115,10 +126,13 @@ export class SlackIntegration {
 
   // 5. Search Conversations (Messages)
   async searchConversations(query: string): Promise<string> {
-    if (!this.token) return 'Error: SLACK_BOT_TOKEN not set in .env';
+    // search.messages only works with a user token (xoxp-…), not a bot token.
+    if (!this.userToken) {
+      return 'Error: Slack message search requires SLACK_USER_TOKEN (a user token, xoxp-…). Bot tokens cannot call search.messages.';
+    }
     try {
       const res = await axios.get('https://slack.com/api/search.messages', {
-        headers: { Authorization: `Bearer ${this.token}` },
+        headers: { Authorization: `Bearer ${this.userToken}` },
         params: { query, count: 5 }
       });
 

@@ -5,6 +5,7 @@ import path from 'path';
 import os from 'os';
 import { MemoryService } from '../memory/MemoryService';
 import { Collector } from '../types';
+import { warnThrottled } from '../utils/logger';
 
 const execAsync = promisify(exec);
 
@@ -54,7 +55,7 @@ export class ScreenOCRCollector implements Collector {
 
         fs.unlinkSync(tempImg); // Cleanup
       } catch (error) {
-        // Silent fail (usually tesseract isn't installed)
+        warnThrottled('screenocr-collector', 300000, '[ScreenOCRCollector] capture/OCR failed (is tesseract installed?):', error instanceof Error ? error.message : error);
       }
     }, 120000);
   }
