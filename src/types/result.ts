@@ -15,3 +15,15 @@ export function toolOk(message: string): ToolResult {
 export function toolErr(message: string): ToolResult {
   return { ok: false, message };
 }
+
+/**
+ * Typed failure for the action/integration layer. Throwing this (instead of
+ * returning an "Error…" string) lets ActionExecutor classify failures by
+ * exception rather than by sniffing prose. `cause` is folded into the message.
+ */
+export class IntegrationError extends Error {
+  constructor(message: string, cause?: unknown) {
+    super(cause instanceof Error ? `${message}: ${cause.message}` : message);
+    this.name = 'IntegrationError';
+  }
+}
