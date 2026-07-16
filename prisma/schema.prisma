@@ -62,3 +62,13 @@ model ScreenOCR {
   text      String
   timestamp DateTime @default(now())
 }
+
+model Conversation {
+  id        Int      @id @default(autoincrement())
+  sessionId String
+  role      String
+  content   String
+  timestamp DateTime @default(now())
+
+  @@index([sessionId, id])
+}

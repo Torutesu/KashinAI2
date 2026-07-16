@@ -4,6 +4,7 @@ import { LLMProvider, LLMHistoryMessage, ToolCall } from '../types';
 import { ActionExecutor } from '../actions/ActionExecutor';
 import { MemoryService } from '../memory/MemoryService';
 import { selectRelevantToolsSemantic } from './Toolregistry';
+import { ConversationStore, InMemoryConversationStore } from '../memory/ConversationStore';
 
 // Actions that mutate external state / send irreversible things — require explicit confirm
 const DESTRUCTIVE_TOOLS = new Set([
@@ -33,17 +34,18 @@ export class OrchestratorService {
   // Confirmation state is keyed per session so concurrent callers never mix
   // (one user's "yes" must not execute another user's pending action).
   private pendingCallsBySession: Map<string, ToolCall[]> = new Map();
-  // Clean multi-turn history per session (only the user prompt + final answer of
-  // each turn — not the in-loop tool scaffolding). Capped to the most recent turns.
-  private conversationHistory: Map<string, LLMHistoryMessage[]> = new Map();
-  private readonly MAX_HISTORY_MESSAGES = 20; // ~10 turns
 
   constructor(
     private retriever: RetrieverService,
     private llm: LLMProvider,
-    private memoryService: MemoryService
+    private memoryService: MemoryService,
+    // Per-session conversation history. Defaults to in-memory; app.ts injects a
+    // Prisma-backed store so history survives restarts.
+    private conversationStore: ConversationStore = new InMemoryConversationStore(),
+    // Injectable so tests can drive the tool loop with a fake executor.
+    actionExecutor: ActionExecutor = new ActionExecutor()
   ) {
-    this.actionExecutor = new ActionExecutor();
+    this.actionExecutor = actionExecutor;
   }
 
   async processPrompt(prompt: string, sessionId: string = 'default'): Promise<string> {
@@ -73,7 +75,7 @@ export class OrchestratorService {
 
     // 3. AGENTIC LOOP - Allows the AI to use multiple tools in sequence.
     //    Seed with the session's prior conversation so the model has context.
-    const priorHistory = this.conversationHistory.get(sessionId) ?? [];
+    const priorHistory = await this.conversationStore.load(sessionId);
     let currentPrompt = prompt;
     let history: LLMHistoryMessage[] = [...priorHistory, { role: 'user', parts: [{ text: prompt }] }];
     let steps = 0;
@@ -128,20 +130,16 @@ export class OrchestratorService {
     }
 
     const answer = finalOutput.trim() || "I couldn't process that request.";
-    this.recordTurn(sessionId, prompt, answer);
+    await this.recordTurn(sessionId, prompt, answer);
     return answer;
   }
 
-  /** Append this turn's user prompt + final answer to the session history (capped). */
-  private recordTurn(sessionId: string, prompt: string, answer: string): void {
-    const prior = this.conversationHistory.get(sessionId) ?? [];
-    const updated: LLMHistoryMessage[] = [
-      ...prior,
+  /** Persist this turn's user prompt + final answer to the session history. */
+  private async recordTurn(sessionId: string, prompt: string, answer: string): Promise<void> {
+    await this.conversationStore.append(sessionId, [
       { role: 'user', parts: [{ text: prompt }] },
       { role: 'model', parts: [{ text: answer }] },
-    ];
-    // Keep only the most recent messages to bound memory and prompt size.
-    this.conversationHistory.set(sessionId, updated.slice(-this.MAX_HISTORY_MESSAGES));
+    ]);
   }
 
   private async runToolCalls(calls: ToolCall[]): Promise<string> {
@@ -149,7 +147,10 @@ export class OrchestratorService {
     for (const call of calls) {
       console.log(`[Orchestrator] Executing tool: ${call.name} with args:`, call.args);
       const result = await this.actionExecutor.execute(call.name, call.args);
-      executionResults += `- ${call.name}: ${result}\n`;
+      // Mark failures explicitly so the model can recover on the next step
+      // instead of assuming the action succeeded.
+      const prefix = result.ok ? '' : '[FAILED] ';
+      executionResults += `- ${call.name}: ${prefix}${result.message}\n`;
     }
     return executionResults;
   }

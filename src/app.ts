@@ -10,9 +10,14 @@ import { ActionExecutor } from './actions/ActionExecutor';
 import { createVoiceRoutes } from './voice/VoiceRoutes'; //
 import { getToolEmbeddingCorpus } from './llm/Toolregistry';
 import { requireApiToken, corsOriginCheck } from './middleware/auth';
+import { createRateLimiter } from './middleware/rateLimit';
+import { PrismaConversationStore } from './memory/PrismaConversationStore';
 
 const app = express();
 app.use(cors({ origin: corsOriginCheck }));
+
+// Basic per-IP rate limiting (configurable via RATE_LIMIT_* env vars).
+app.use(createRateLimiter());
 
 // Limit payload size to 1mb to prevent crashing
 app.use(express.json({ limit: '1mb' }));
@@ -20,7 +25,12 @@ app.use(express.json({ limit: '1mb' }));
 // Dependency Injection (Singletons) — memoryService is shared process-wide.
 const retrieverService = new RetrieverService(memoryService);
 const llmProvider = new GeminiProvider(process.env.GEMINI_API_KEY || '');
-const orchestratorService = new OrchestratorService(retrieverService, llmProvider, memoryService);
+const orchestratorService = new OrchestratorService(
+  retrieverService,
+  llmProvider,
+  memoryService,
+  new PrismaConversationStore()
+);
 const actionExecutor = new ActionExecutor();
 
 (async () => {
@@ -87,7 +97,7 @@ app.post('/actions/execute', requireApiToken, validateBody, async (req: Request,
   const { toolName, args } = req.body;
   if (!toolName) return res.status(400).json({ error: 'toolName is required' });
   const result = await actionExecutor.execute(toolName, args || {});
-  res.json({ result });
+  res.json({ result: result.message, ok: result.ok });
 });
 
 // --- Memory APIs ---
