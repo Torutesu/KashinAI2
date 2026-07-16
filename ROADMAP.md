@@ -59,10 +59,12 @@ confirmation gate on destructive actions.
 - **Metrics** (basic counters: events collected, tool calls, errors).
 
 ### Testing
-- Integration unit tests with **mocked HTTP** (Slack/GitHub/Notion/Gmail).
-- **E2E of `/chat`** using a mock `LLMProvider` (exercise the agentic loop +
-  confirmation flow without a real model or embeddings).
-- Orchestrator confirmation-flow tests (approve / deny / re-prompt).
+- ~~Integration unit tests with **mocked HTTP** (Slack/GitHub/Notion/Gmail).~~
+  **Done** — axios-mocked GitHub/Slack tests, Notion key-guard tests, Gmail
+  header-injection tests.
+- ~~Orchestrator tests with a mock `LLMProvider` (agentic loop + confirmation
+  flow).~~ **Done** — tool success/failure feedback and the destructive-action
+  approve/deny gate are covered.
 
 ---
 

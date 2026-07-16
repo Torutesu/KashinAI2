@@ -28,6 +28,15 @@ function fakeExecutor(result: ToolResult) {
   return { execute: async () => result } as any;
 }
 
+// LLM that always requests a destructive tool (send_email).
+function destructiveToolLLM() {
+  return {
+    async generateResponse() {
+      return { text: null, toolCalls: [{ name: 'send_email', args: { to: 'a', subject: 's', body: 'b' } }] };
+    },
+  } as any;
+}
+
 test('a failing tool is surfaced to the model as [FAILED]', async () => {
   const orch = new OrchestratorService(
     fakeRetriever,
@@ -52,4 +61,31 @@ test('a succeeding tool result is fed back without a failure marker', async () =
   const out = await orch.processPrompt('what tab am I on', 's2');
   assert.doesNotMatch(out, /\[FAILED\]/);
   assert.match(out, /all done|example\.com/);
+});
+
+test('a destructive tool asks for confirmation, then executes on "yes"', async () => {
+  const orch = new OrchestratorService(
+    fakeRetriever,
+    destructiveToolLLM(),
+    fakeMemory,
+    new InMemoryConversationStore(),
+    fakeExecutor({ ok: true, message: 'sent' })
+  );
+  const first = await orch.processPrompt('email bob', 'c1');
+  assert.match(first, /confirm/i); // did NOT execute yet
+  const second = await orch.processPrompt('yes', 'c1');
+  assert.match(second, /executed/i);
+});
+
+test('a destructive tool is cancelled on "no"', async () => {
+  const orch = new OrchestratorService(
+    fakeRetriever,
+    destructiveToolLLM(),
+    fakeMemory,
+    new InMemoryConversationStore(),
+    fakeExecutor({ ok: true, message: 'sent' })
+  );
+  await orch.processPrompt('email bob', 'c2');
+  const denied = await orch.processPrompt('no', 'c2');
+  assert.match(denied, /cancel/i);
 });
