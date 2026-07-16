@@ -33,9 +33,10 @@ confirmation gate on destructive actions.
   results are now fed back with explicit success/failure. Remaining: use the
   SDK's real `functionCall`/`functionResponse` parts (needs a live Gemini key to
   validate the wire format) instead of the text-based round-trip.
-- **VS Code live features are stubs.** `getCursorPosition` / `readSelectedCode`
-  return placeholders — they need a companion VS Code extension over a local
-  socket. → Build the extension + a small WS channel.
+- ~~**VS Code live features are stubs.**~~ **Done** — `kashinai-vscode/`
+  companion extension POSTs live cursor/selection to `/vscode/state`;
+  `getCursorPosition` / `readSelectedCode` now serve that live state (stale after
+  30s). Backend side is tested; the extension itself needs manual VS Code testing.
 - **Collector coverage in the vector store.** `APP_ACTIVITY` and
   `VSCODE_ACTIVITY` are stored in SQLite but never embedded, so semantic search
   can't find them. → Decide policy and embed (with noise filtering).
@@ -95,7 +96,8 @@ confirmation gate on destructive actions.
    surfaced suggestions based on current context.
 
 ### Phase C — Reach & extensibility
-8. **VS Code companion extension** (unlocks cursor/selection features).
+8. ~~**VS Code companion extension** (unlocks cursor/selection features).~~
+   **Done** — see `kashinai-vscode/`.
 9. **Pluggable LLM provider** (local model option behind the `LLMProvider`
    interface; Gemini stays default).
 10. **More integrations** (Jira/Linear, Telegram/Discord) and **per-app privacy

@@ -4,6 +4,7 @@ import { promisify } from 'util';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import { getVSCodeLiveState, isLiveStateFresh } from './vscodeLiveState';
 
 const execFileAsync = promisify(execFile);
 
@@ -72,13 +73,21 @@ export class VSCodeIntegration {
   }
 
   // 4. Cursor Position & 5. Read Selected Code
-  // Because Node.js cannot reach inside the VS Code process, these require a VS Code Extension.
-  // We return this graceful message so the LLM knows it needs the extension connected.
+  // Served from live state pushed by the KashinAI VS Code companion extension
+  // (POST /vscode/state). Falls back to a helpful message when not connected.
   async getCursorPosition(): Promise<string> {
-    return "Live cursor position requires the VS Code Extension to be connected to the backend.";
+    const s = getVSCodeLiveState();
+    if (isLiveStateFresh(Date.now()) && typeof s.line === 'number') {
+      return `Cursor at ${s.file ?? 'unknown file'}:${s.line}:${s.column ?? 0}`;
+    }
+    return "Live cursor position requires the KashinAI VS Code companion extension to be connected.";
   }
 
   async readSelectedCode(): Promise<string> {
-    return "Reading live selected code requires the VS Code Extension to be connected to the backend.";
+    const s = getVSCodeLiveState();
+    if (isLiveStateFresh(Date.now()) && s.selectedText) {
+      return s.selectedText;
+    }
+    return "No selected code available — connect the KashinAI VS Code companion extension.";
   }
 }

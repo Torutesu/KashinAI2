@@ -150,6 +150,7 @@ POST /chat                    { prompt, sessionId? }
 POST /llm/query               { prompt }
 POST /actions/execute         { toolName, args }
 POST /voice/query             multipart: audio=<file>
+POST /vscode/state            { file, line, column, selectedText }  (companion ext)
 ```
 
 ### Example
@@ -210,7 +211,15 @@ src/
 tests/              unit + e2e tests
 prisma/             schema & migrations
 kashinai-extension/ Chrome extension
+kashinai-vscode/    VS Code companion (live cursor / selected code)
 ```
+
+## VS Code companion
+
+`kashinai-vscode/` is a small extension that reports the active editor's cursor
+position and selected code to the backend (`POST /vscode/state`), powering the
+`vscode_get_cursor_position` and `vscode_read_selected_code` tools. See
+[`kashinai-vscode/README.md`](./kashinai-vscode/README.md) for setup.
 
 ---
 

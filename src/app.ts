@@ -12,6 +12,7 @@ import { getToolEmbeddingCorpus } from './llm/Toolregistry';
 import { requireApiToken, corsOriginCheck } from './middleware/auth';
 import { createRateLimiter } from './middleware/rateLimit';
 import { PrismaConversationStore } from './memory/PrismaConversationStore';
+import { setVSCodeLiveState } from './integrations/vscodeLiveState';
 
 const app = express();
 app.use(cors({ origin: corsOriginCheck }));
@@ -127,6 +128,18 @@ app.post('/llm/query', async (req: Request, res: Response) => {
   } catch (error) {
     res.status(500).json({ error: 'LLM query failed' });
   }
+});
+
+// --- VS Code companion: receive live editor state (cursor + selection) ---
+app.post('/vscode/state', requireApiToken, (req: Request, res: Response) => {
+  const { file, line, column, selectedText } = req.body || {};
+  setVSCodeLiveState({
+    file: typeof file === 'string' ? file : undefined,
+    line: typeof line === 'number' ? line : undefined,
+    column: typeof column === 'number' ? column : undefined,
+    selectedText: typeof selectedText === 'string' ? selectedText.slice(0, 10000) : undefined,
+  });
+  res.json({ status: 'ok' });
 });
 
 app.use('/voice', requireApiToken, createVoiceRoutes(orchestratorService));
