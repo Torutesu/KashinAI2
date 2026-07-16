@@ -93,6 +93,7 @@ Then fill it in. Key variables (see `.env.example` for the full list):
 | `API_TOKEN` | **Set this.** Shared token required on state-changing routes. If unset, those routes run unauthenticated (dev only) and the server warns. |
 | `ALLOWED_ORIGINS` | Comma-separated CORS allowlist (optional) |
 | `MEMORY_RETENTION_DAYS` | Days to keep memories before pruning (default 30; 0 disables) |
+| `RATE_LIMIT_WINDOW_MS` / `RATE_LIMIT_MAX` | Per-IP rate limit (default 60/min; `RATE_LIMIT_MAX=0` disables) |
 | `CALENDAR_TIMEZONE` | IANA tz for created/updated calendar events (optional) |
 | `SLACK_BOT_TOKEN` / `SLACK_USER_TOKEN` | Slack bot token; user token only needed for message search |
 | `GITHUB_TOKEN`, `NOTION_API_KEY` | Integration credentials |

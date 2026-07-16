@@ -12,6 +12,10 @@ import { ScreenOCRCollector } from './collectors/ScreenOCRCollector';
 import { memoryService } from './memory/instance';
 import { WhisperService } from './voice/WhisperService'; // ⬅️ NEW
 import { checkExternalBinaries } from './utils/binaryCheck';
+import { assertValidConfig } from './config';
+
+// Validate configuration before anything else (throws on hard errors).
+assertValidConfig();
 
 const PORT = process.env.PORT || 3001;
 

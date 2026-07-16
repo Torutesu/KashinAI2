@@ -10,10 +10,14 @@ import { ActionExecutor } from './actions/ActionExecutor';
 import { createVoiceRoutes } from './voice/VoiceRoutes'; //
 import { getToolEmbeddingCorpus } from './llm/Toolregistry';
 import { requireApiToken, corsOriginCheck } from './middleware/auth';
+import { createRateLimiter } from './middleware/rateLimit';
 import { PrismaConversationStore } from './memory/PrismaConversationStore';
 
 const app = express();
 app.use(cors({ origin: corsOriginCheck }));
+
+// Basic per-IP rate limiting (configurable via RATE_LIMIT_* env vars).
+app.use(createRateLimiter());
 
 // Limit payload size to 1mb to prevent crashing
 app.use(express.json({ limit: '1mb' }));

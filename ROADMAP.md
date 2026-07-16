@@ -49,8 +49,10 @@ confirmation gate on destructive actions.
 - ~~**Durable conversation history** (in-memory today; lost on restart).~~
   **Done** — `ConversationStore` abstraction with a SQLite-backed
   `PrismaConversationStore` (in-memory default for tests).
-- **Rate limiting** on the HTTP API.
-- **Config validation** (fail fast on missing/invalid env with a schema).
+- ~~**Rate limiting** on the HTTP API.~~ **Done** — per-IP fixed-window limiter
+  (`src/middleware/rateLimit.ts`, `RATE_LIMIT_*` env).
+- ~~**Config validation** (fail fast on missing/invalid env).~~ **Done** —
+  `src/config.ts` (`assertValidConfig` at startup).
 - **Dockerfile + compose** for reproducible deploys.
 - **Graceful shutdown flush** of pending writes; **/ready** probe.
 - **Structured logging** (pino/winston) with levels, replacing console.*.
