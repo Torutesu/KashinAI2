@@ -62,10 +62,10 @@ macOS · Linux (X11 & Wayland) · Windows.
 
 ## Prerequisites
 
-- Node.js 18+ and npm
+- Node.js 22+ and npm (the browser-history reader uses the built-in `node:sqlite`)
 - Platform tools (optional — the server warns at startup about any missing one):
-  - **Linux:** `sudo apt install sqlite3 xdotool xclip wl-clipboard tesseract-ocr gnome-screenshot`
-  - **macOS:** `brew install sqlite tesseract`
+  - **Linux:** `sudo apt install xdotool xclip wl-clipboard tesseract-ocr gnome-screenshot`
+  - **macOS:** `brew install tesseract`
   - **Windows:** Tesseract OCR on PATH; the VS Code `code` command on PATH.
 
 ---

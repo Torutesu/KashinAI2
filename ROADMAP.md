@@ -40,10 +40,11 @@ confirmation gate on destructive actions.
   can't find them. → Decide policy and embed (with noise filtering).
 - **Google `web` credential flow.** Refresh client supports the shape but the
   interactive `googleAuth.ts` only handles `installed`. → Unify.
-- ~~**Browser history scope.** Only Chrome's Default profile.~~ **Done** — now
-  scans Chrome/Chromium/Edge/Brave across all profiles (Default, Profile N),
-  deduped per DB (`src/collectors/browserPaths.ts`). Still uses the `sqlite3`
-  CLI (reading via a lib remains a future cleanup).
+- ~~**Browser history scope.** Only Chrome's Default profile; hard `sqlite3` CLI
+  dependency.~~ **Done** — scans Chrome/Chromium/Edge/Brave across all profiles
+  (Default, Profile N), deduped per DB (`src/collectors/browserPaths.ts`), and
+  reads via the built-in `node:sqlite` (`browserHistoryDb.ts`) — no more external
+  `sqlite3` CLI. (Requires Node 22+.)
 - **Wayland active-window** relies on GNOME `Eval` (disabled by default). →
   Use a portal or per-DE strategy.
 
