@@ -5,6 +5,7 @@
 // GeminiProvider's contract: takes prompt/context/history/tools, returns
 // { text, toolCalls }.
 
+import { log } from '../utils/logger';
 import OpenAI from 'openai';
 import { LLMProvider, LLMResponse, LLMHistoryMessage, ToolDefinition, ToolCall } from '../types';
 
@@ -87,7 +88,7 @@ export class OpenAIProvider implements LLMProvider {
 
       return { text: message?.content || null, toolCalls };
     } catch (error) {
-      console.error('[OpenAIProvider] API Error:', error);
+      log.error('[OpenAIProvider] API Error:', error);
       throw error;
     }
   }

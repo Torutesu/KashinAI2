@@ -19,9 +19,15 @@ export async function authenticate(): Promise<any> {
   }
 
   const credentials = JSON.parse(fs.readFileSync(CREDENTIALS_PATH, 'utf-8'));
-  const { client_secret, client_id } = credentials.installed;
+  // Accept both "installed" (Desktop) and "web" OAuth client shapes.
+  const conf = credentials.installed || credentials.web;
+  if (!conf) {
+    throw new Error('google_credentials.json must contain an "installed" or "web" client block.');
+  }
+  const { client_secret, client_id } = conf;
 
-  // Use port 8080 to avoid conflicts with your main server on 3001
+  // Use port 8080 to avoid conflicts with your main server on 3001.
+  // For "web" clients, add http://localhost:8080 to the authorized redirect URIs.
   const redirectUri = 'http://localhost:8080';
   const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirectUri);
 

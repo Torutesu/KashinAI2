@@ -38,8 +38,8 @@ confirmation gate on destructive actions.
 - **Collector coverage in the vector store.** `APP_ACTIVITY` and
   `VSCODE_ACTIVITY` are stored in SQLite but never embedded, so semantic search
   can't find them. → Decide policy and embed (with noise filtering).
-- **Google `web` credential flow.** Refresh client supports the shape but the
-  interactive `googleAuth.ts` only handles `installed`. → Unify.
+- ~~**Google `web` credential flow.**~~ **Done** — `googleAuth.ts` now accepts
+  both `installed` and `web` client shapes (matching `googleClient`).
 - ~~**Browser history scope.** Only Chrome's Default profile; hard `sqlite3` CLI
   dependency.~~ **Done** — scans Chrome/Chromium/Edge/Brave across all profiles
   (Default, Profile N), deduped per DB (`src/collectors/browserPaths.ts`), and
@@ -63,9 +63,10 @@ confirmation gate on destructive actions.
 - ~~**Graceful shutdown flush** of pending writes.~~ **Done** — SIGINT/SIGTERM
   stop collectors, close the HTTP server, and `prisma.$disconnect()` (with a
   10s force-exit backstop).
-- ~~**Structured logging** with levels, replacing console.*.~~ **Done (core)** —
-  leveled logger (`LOG_LEVEL`/`LOG_FORMAT`, `src/utils/logger.ts`), adopted at
-  the entry points; remaining console.* can migrate incrementally.
+- ~~**Structured logging** with levels, replacing console.*.~~ **Done** — leveled
+  logger (`LOG_LEVEL`/`LOG_FORMAT`, `src/utils/logger.ts`) adopted across the
+  runtime hot path (LLM providers, orchestrator, memory services, app). A few
+  standalone/setup scripts still use console.* intentionally.
 - ~~**Metrics** (basic counters: events collected, tool calls, errors).~~
   **Done** — `src/utils/metrics.ts` + `GET /metrics` (Prometheus text).
 

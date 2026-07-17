@@ -3,6 +3,7 @@
 // Durable conversation history backed by SQLite (Conversation table). Imported
 // only by app.ts so the rest of the code (and tests) can stay Prisma-free.
 
+import { log } from '../utils/logger';
 import { prisma } from '../db/prisma';
 import { LLMHistoryMessage } from '../types';
 import { ConversationStore, MAX_HISTORY_MESSAGES } from './ConversationStore';
@@ -20,7 +21,7 @@ export class PrismaConversationStore implements ConversationStore {
         .reverse()
         .map((r) => ({ role: r.role === 'model' ? 'model' : 'user', parts: [{ text: r.content }] }));
     } catch (error) {
-      console.error('[PrismaConversationStore] load failed:', error);
+      log.error('[PrismaConversationStore] load failed:', error);
       return [];
     }
   }
@@ -45,7 +46,7 @@ export class PrismaConversationStore implements ConversationStore {
         await prisma.conversation.deleteMany({ where: { id: { in: stale.map((r) => r.id) } } });
       }
     } catch (error) {
-      console.error('[PrismaConversationStore] append failed:', error);
+      log.error('[PrismaConversationStore] append failed:', error);
     }
   }
 }

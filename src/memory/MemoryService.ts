@@ -1,4 +1,5 @@
 // src/memory/MemoryService.ts
+import { log } from '../utils/logger';
 import { prisma } from '../db/prisma';
 import { ContextEvent } from '../types';
 import { VectorService } from './VectorService';
@@ -72,7 +73,7 @@ export class MemoryService {
       }
       increment('events_stored_total');
     } catch (error) {
-      console.error('[MemoryService] Failed to store event:', error);
+      log.error('[MemoryService] Failed to store event:', error);
     }
   }
 
@@ -95,7 +96,7 @@ export class MemoryService {
       ]);
       return { recentApps: apps, recentClipboard: clips, recentBrowser: browser, recentSelectedText: selected, recentSlack: slack, recentCalendar: calendar, recentVSCode: vscode, recentOCR: ocr };
     } catch (error) {
-      console.error('[MemoryService] Failed to fetch context:', error);
+      log.error('[MemoryService] Failed to fetch context:', error);
       return {};
     }
   }
@@ -124,7 +125,7 @@ export class MemoryService {
       ocr.forEach((r) => out.push({ text: r.text, type: 'OCR', timestamp: r.timestamp.toISOString() }));
       return out;
     } catch (error) {
-      console.error('[MemoryService] keywordSearch failed:', error);
+      log.error('[MemoryService] keywordSearch failed:', error);
       return [];
     }
   }
@@ -136,7 +137,7 @@ export class MemoryService {
       const semanticMatches = await this.vectorService.searchMemory(query, 5);
       return { semanticMatches };
     } catch (error) {
-      console.error('[MemoryService] Search failed:', error);
+      log.error('[MemoryService] Search failed:', error);
       return { semanticMatches: [] };
     }
   }
@@ -170,11 +171,11 @@ export class MemoryService {
       ]);
       const sqliteDeleted = results.reduce((sum, r) => sum + r.count, 0);
       const vectorsDeleted = await this.vectorService.pruneOlderThan(cutoff.toISOString());
-      console.log(
+      log.info(
         `[MemoryService] Retention: pruned ${sqliteDeleted} SQLite rows and ${vectorsDeleted} vectors older than ${retentionDays}d.`
       );
     } catch (error) {
-      console.error('[MemoryService] Retention prune failed:', error);
+      log.error('[MemoryService] Retention prune failed:', error);
     }
   }
 }

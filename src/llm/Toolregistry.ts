@@ -1,3 +1,4 @@
+import { log } from '../utils/logger';
 import { ToolDefinition } from '../types';
 import type { MemoryService } from '../memory/MemoryService';
 
@@ -577,13 +578,13 @@ export async function selectRelevantToolsSemantic(
     }
 
     const sorted = [...results].sort((a, b) => a.distance - b.distance);
-    console.log('[toolRegistry] Semantic tool distances:', sorted.map((r) => `${r.name}:${r.distance.toFixed(3)}`).join(', '));
+    log.info('[toolRegistry] Semantic tool distances:', sorted.map((r) => `${r.name}:${r.distance.toFixed(3)}`).join(', '));
 
     const top = sorted[0];
 
     if (top.distance > SEMANTIC_RELEVANCE_FLOOR) {
  
-      console.log(`[toolRegistry] Top match ${top.name} (${top.distance.toFixed(3)}) is past the relevance floor (${SEMANTIC_RELEVANCE_FLOOR}) — sending no tools.`);
+      log.info(`[toolRegistry] Top match ${top.name} (${top.distance.toFixed(3)}) is past the relevance floor (${SEMANTIC_RELEVANCE_FLOOR}) — sending no tools.`);
       return [];
     }
 
@@ -603,7 +604,7 @@ export async function selectRelevantToolsSemantic(
 
     return widened.length > 0 ? widened : selectRelevantTools(prompt);
   } catch (error) {
-    console.error('[toolRegistry] Semantic tool selection failed, falling back to keywords:', error);
+    log.error('[toolRegistry] Semantic tool selection failed, falling back to keywords:', error);
     return selectRelevantTools(prompt);
   }
 }

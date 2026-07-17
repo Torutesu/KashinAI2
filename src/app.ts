@@ -1,4 +1,5 @@
 // src/app.ts
+import { log } from './utils/logger';
 import './loadEnv'; // must be first — populates process.env before config reads it
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
@@ -40,9 +41,9 @@ const actionExecutor = new ActionExecutor();
   try {
     await memoryService.vectorService.initialize();
     await memoryService.initToolIndex(getToolEmbeddingCorpus());
-    console.log('[app] Tool vector index ready.');
+    log.info('[app] Tool vector index ready.');
   } catch (error) {
-    console.error('[app] Tool vector index bootstrap failed — will keep using keyword-based tool selection:', error);
+    log.error('[app] Tool vector index bootstrap failed — will keep using keyword-based tool selection:', error);
   }
 })();
 
@@ -94,7 +95,7 @@ app.post('/chat', requireApiToken, async (req: Request, res: Response) => {
     const response = await orchestratorService.processPrompt(prompt, sessionId);
     res.json({ response });
   } catch (error) {
-    console.error('[Server] /chat error:', error);
+    log.error('[Server] /chat error:', error);
     res.status(500).json({ error: 'LLM processing failed' });
   }
 });
