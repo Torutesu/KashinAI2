@@ -1,0 +1,18 @@
+# Caddyfile — TLS-terminating reverse proxy in front of the KashinAI2 API.
+#
+# {$DOMAIN} defaults to "localhost". Caddy's automatic HTTPS then:
+#   - issues a local/internal certificate for "localhost", or
+#   - obtains a Let's Encrypt certificate for a real public DOMAIN.
+# No manual cert wrangling either way.
+
+{$DOMAIN:localhost} {
+	reverse_proxy app:3001
+
+	# Basic hardening headers.
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+	}
+}

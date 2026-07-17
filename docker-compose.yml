@@ -1,0 +1,51 @@
+# docker-compose.yml
+#
+# Runs the KashinAI2 API behind a TLS-terminating Caddy reverse proxy, so the
+# action layer is only reachable over HTTPS (with a device token). For local
+# use Caddy issues an internal cert; for a real domain, set DOMAIN + EMAIL and
+# Caddy will obtain a Let's Encrypt certificate automatically.
+#
+#   1. cp .env.example .env   # set API_TOKEN / API_TOKENS + provider creds
+#   2. (optional) export DOMAIN=kashinai.example.com EMAIL=you@example.com
+#   3. docker compose up -d
+#
+# The app is NOT published directly — only Caddy's 80/443 are exposed.
+
+services:
+  app:
+    build: .
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+      # Keep the SQLite DB on the persistent volume.
+      DATABASE_URL: "file:/app/data/dev.db"
+    # Persist local data (SQLite + LanceDB) across restarts.
+    volumes:
+      - kashinai-data:/app/data
+      - kashinai-lancedb:/app/lancedb
+    expose:
+      - "3001"
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+      EMAIL: ${EMAIL:-}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    restart: unless-stopped
+
+volumes:
+  kashinai-data:
+  kashinai-lancedb:
+  caddy-data:
+  caddy-config:

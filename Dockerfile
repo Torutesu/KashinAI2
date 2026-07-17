@@ -21,4 +21,5 @@ COPY public ./public
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 EXPOSE 3001
-CMD ["node", "dist/server.js"]
+# Apply pending migrations (idempotent) before starting the server.
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/server.js"]
