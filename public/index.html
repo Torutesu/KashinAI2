@@ -118,7 +118,14 @@
 
 <script>
   const $ = (id) => document.getElementById(id);
-  async function j(url, opts) { const r = await fetch(url, opts); return r.ok ? r.json() : null; }
+  // Always attach the token if present, so the dashboard also works when the
+  // backend is publicly exposed with REQUIRE_AUTH_ALL.
+  async function j(url, opts) {
+    const o = opts || {};
+    o.headers = authHeaders(o.headers);
+    const r = await fetch(url, o);
+    return r.ok ? r.json() : null;
+  }
 
   // --- token (stored locally, sent on management calls) ---
   const tokenEl = $('token');
@@ -153,7 +160,7 @@
 
   async function refreshMetrics() {
     try {
-      const r = await fetch('/metrics');
+      const r = await fetch('/metrics', { headers: authHeaders() });
       const text = r.ok ? await r.text() : '';
       const rows = text.trim().split('\n').filter(Boolean).map((l) => l.split(' '));
       const box = $('metrics');

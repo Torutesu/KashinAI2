@@ -3,6 +3,18 @@
 All notable changes to KashinAI2 are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## [1.3.0] - 2026-07-17
+
+### Added
+- **Public URL deployment via Cloudflare Tunnel**: `docker-compose.cloudflare.yml`
+  runs the app behind a `cloudflared` tunnel (public HTTPS URL, TLS terminated by
+  Cloudflare, no ports opened). `DEPLOY.md` documents named + quick tunnels.
+- **Public-safe auth** (`REQUIRE_AUTH_ALL=true`): gates the read routes
+  (`/context/*`, `/memory/search`, `/metrics`, `/retrieve`) with the API token
+  too, so an internet-facing deployment never serves captured context
+  unauthenticated. The dashboard sends the token on every request. Probes
+  (`/health`, `/ready`) and the static dashboard shell stay open.
+
 ## [1.2.0] - 2026-07-17
 
 Per-owner multi-device release (see `docs/requirements-v1.2.md`).

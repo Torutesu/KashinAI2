@@ -1,0 +1,44 @@
+# docker-compose.cloudflare.yml
+#
+# Expose the KashinAI2 API on a public HTTPS URL via a Cloudflare Tunnel — no
+# ports opened, no inbound firewall changes, TLS terminated by Cloudflare.
+#
+#   1. cp .env.example .env
+#      - set API_TOKEN (or API_TOKENS) — REQUIRED, the URL is public
+#      - set TUNNEL_TOKEN from your Cloudflare Zero Trust tunnel
+#   2. In the Cloudflare dashboard, route the tunnel's public hostname to
+#      the service:  http://app:3001
+#   3. docker compose -f docker-compose.cloudflare.yml up -d
+#
+# The app runs with REQUIRE_AUTH_ALL=true so read routes are also token-gated.
+# See DEPLOY.md and SECURITY.md.
+
+services:
+  app:
+    build: .
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+      DATABASE_URL: "file:/app/data/dev.db"
+      # Public exposure → gate the read routes too.
+      REQUIRE_AUTH_ALL: "true"
+    volumes:
+      - kashinai-data:/app/data
+      - kashinai-lancedb:/app/lancedb
+    expose:
+      - "3001"
+    restart: unless-stopped
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN}
+    depends_on:
+      - app
+    restart: unless-stopped
+
+volumes:
+  kashinai-data:
+  kashinai-lancedb:

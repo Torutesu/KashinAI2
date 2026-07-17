@@ -13,7 +13,7 @@ import { createChatStreamHandler } from './llm/chatStream';
 import { ActionExecutor } from './actions/ActionExecutor';
 import { createVoiceRoutes } from './voice/VoiceRoutes'; //
 import { getToolEmbeddingCorpus } from './llm/Toolregistry';
-import { requireApiToken, corsOriginCheck, listDevices } from './middleware/auth';
+import { requireApiToken, requireAuthWhenPublic, corsOriginCheck, listDevices } from './middleware/auth';
 import { createRateLimiter } from './middleware/rateLimit';
 import { PrismaConversationStore } from './memory/PrismaConversationStore';
 import { setVSCodeLiveState } from './integrations/vscodeLiveState';
@@ -79,9 +79,10 @@ app.get('/health', (req: Request, res: Response) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Operational endpoints (unauthenticated, read-only).
+// Probes stay open (they expose no user data). /metrics can leak usage, so it
+// is gated when REQUIRE_AUTH_ALL is set (public deployment).
 app.get('/ready', createReadyHandler(() => memoryService.isReady()));
-app.get('/metrics', metricsHandler);
+app.get('/metrics', requireAuthWhenPublic, metricsHandler);
 app.get('/version', createVersionHandler(APP_VERSION));
 
 // Configured device labels (never the secrets); requires a valid token.
@@ -95,20 +96,20 @@ app.put('/settings/privacy', requireApiToken, createPrivacyPutHandler((v) => set
 app.get('/actions/history', requireApiToken, actionsHistoryHandler);
 app.post('/memory/clear', requireApiToken, createMemoryClearHandler((s) => memoryService.clearSource(s)));
 
-// --- Context APIs ---
-app.get('/context/current', async (req: Request, res: Response) => {
+// --- Context APIs (gated when publicly exposed) ---
+app.get('/context/current', requireAuthWhenPublic, async (req: Request, res: Response) => {
   const context = await memoryService.getRecentContext(1);
   res.json(context);
 });
 
-app.get('/context/recent', async (req: Request, res: Response) => {
+app.get('/context/recent', requireAuthWhenPublic, async (req: Request, res: Response) => {
   const limit = parseInt(req.query.limit as string) || 10;
   const context = await memoryService.getRecentContext(limit);
   res.json(context);
 });
 
 // --- Retrieval API ---
-app.post('/retrieve', async (req: Request, res: Response) => {
+app.post('/retrieve', requireAuthWhenPublic, async (req: Request, res: Response) => {
   const { prompt } = req.body;
   if (!prompt) return res.status(400).json({ error: 'Prompt is required' });
   const context = await retrieverService.retrieveContext(prompt);
@@ -145,7 +146,7 @@ app.post('/actions/execute', requireApiToken, validateBody, async (req: Request,
 });
 
 // --- Memory APIs ---
-app.get('/memory/search', async (req: Request, res: Response) => {
+app.get('/memory/search', requireAuthWhenPublic, async (req: Request, res: Response) => {
   const query = req.query.query as string;
   if (!query) return res.status(400).json({ error: 'query parameter is required' });
   const results = await memoryService.searchMemory(query);
