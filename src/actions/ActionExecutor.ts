@@ -15,6 +15,8 @@ import { VSCodeIntegration } from '../integrations/VSCodeIntegration';
 import { GoogleDriveIntegration } from '../integrations/GoogleDriveIntegration';
 import { JiraIntegration } from '../integrations/JiraIntegration';
 import { LinearIntegration } from '../integrations/LinearIntegration';
+import { TelegramIntegration } from '../integrations/TelegramIntegration';
+import { DiscordIntegration } from '../integrations/DiscordIntegration';
 import { ToolResult, IntegrationError } from '../types/result';
 
 const execFileAsync = promisify(execFile);
@@ -30,6 +32,8 @@ export class ActionExecutor {
   private gdrive: GoogleDriveIntegration;
   private jira: JiraIntegration;
   private linear: LinearIntegration;
+  private telegram: TelegramIntegration;
+  private discord: DiscordIntegration;
 
   constructor() {
     this.slack = new SlackIntegration();
@@ -42,6 +46,8 @@ export class ActionExecutor {
     this.gdrive = new GoogleDriveIntegration();
     this.jira = new JiraIntegration();
     this.linear = new LinearIntegration();
+    this.telegram = new TelegramIntegration();
+    this.discord = new DiscordIntegration();
   }
 
   /**
@@ -166,6 +172,10 @@ export class ActionExecutor {
         // Linear
         case 'linear_search_issues': return await this.linear.searchIssues(String(args.query));
         case 'linear_create_issue': return await this.linear.createIssue(String(args.teamId), String(args.title), String(args.description || ''));
+
+        // Notifications
+        case 'send_telegram_message': return await this.telegram.sendMessage(String(args.message));
+        case 'send_discord_message': return await this.discord.sendMessage(String(args.message));
 
         // VS Code Actions (NEW)
         case 'vscode_open_file': return await this.vscode.openFile(String(args.filePath));

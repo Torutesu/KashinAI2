@@ -13,6 +13,7 @@ export type ToolCategory =
   | 'gdrive'
   | 'jira'
   | 'linear'
+  | 'notify'
   | 'system';
 
 interface RegisteredTool {
@@ -31,6 +32,7 @@ const CATEGORY_KEYWORDS: Record<ToolCategory, string[]> = {
   gdrive: ['google drive', 'gdrive', 'drive file', 'my drive', 'google doc', 'spreadsheet'],
   jira: ['jira', 'jira issue', 'jira ticket', 'sprint', 'epic'],
   linear: ['linear', 'linear issue', 'linear ticket'],
+  notify: ['telegram', 'discord', 'notify me', 'send a notification', 'ping me'],
   system: ['folder', 'directory', 'mkdir', 'open url', 'open link'],
 };
 
@@ -114,6 +116,10 @@ const TOOL_KEYWORDS: Record<string, string[]> = {
   // linear
   linear_search_issues: ['search linear', 'find linear issue', 'linear tickets'],
   linear_create_issue: ['create linear issue', 'new linear ticket'],
+
+  // notify
+  send_telegram_message: ['send telegram', 'telegram me', 'notify on telegram'],
+  send_discord_message: ['send discord', 'discord me', 'notify on discord', 'post to discord'],
 };
 
 const MULTI_INTENT_SIGNALS = [' and then ', ' then ', ' also ', ' aur ', ' phir ', 'uske baad', 'as well as'];
@@ -596,6 +602,24 @@ export const TOOL_REGISTRY: RegisteredTool[] = [
         },
         required: ['teamId', 'title'],
       },
+    },
+  },
+
+  // ---------- notifications ----------
+  {
+    category: 'notify',
+    def: {
+      name: 'send_telegram_message',
+      description: 'Send a notification message to the configured Telegram chat.',
+      parameters: { type: 'object', properties: { message: { type: 'string', description: 'The message text' } }, required: ['message'] },
+    },
+  },
+  {
+    category: 'notify',
+    def: {
+      name: 'send_discord_message',
+      description: 'Send a notification message to the configured Discord channel (webhook).',
+      parameters: { type: 'object', properties: { message: { type: 'string', description: 'The message text' } }, required: ['message'] },
     },
   },
 ];

@@ -30,7 +30,7 @@ multi-step loop, and **per-session multi-turn conversation history**.
 ### Action layer
 Local: open URLs, create directories, open files in VS Code, browser
 automation (Playwright). Cloud: Slack, Gmail, Google Calendar, GitHub, Notion,
-Google Drive (read), Jira, Linear.
+Google Drive (read), Jira, Linear, Telegram, Discord.
 **Destructive actions require an explicit yes/no confirmation.**
 
 ### Security & privacy
