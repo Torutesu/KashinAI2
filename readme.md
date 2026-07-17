@@ -192,8 +192,16 @@ docker build -t kashinai2 .
 docker run -p 3001:3001 --env-file .env kashinai2
 ```
 
-The image runs the API server. Desktop collectors that need OS tools
-(`tesseract`, `xdotool`, …) degrade gracefully with a startup warning.
+The image runs the API server (applying DB migrations on start). Desktop
+collectors that need OS tools (`tesseract`, `xdotool`, …) degrade gracefully
+with a startup warning.
+
+### Behind TLS (recommended for remote/multi-device)
+
+`docker compose up -d` runs the API behind a Caddy reverse proxy that terminates
+TLS; only 80/443 are exposed. Set `DOMAIN` for a real hostname (automatic Let's
+Encrypt) or use `localhost` (internal cert). See [`SECURITY.md`](./SECURITY.md)
+for the trust model and per-device token setup.
 
 ## Testing
 

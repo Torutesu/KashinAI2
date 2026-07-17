@@ -3,10 +3,9 @@
 All notable changes to KashinAI2 are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
-## [1.2.0] - unreleased
+## [1.2.0] - 2026-07-17
 
-Per-owner multi-device release (see `docs/requirements-v1.2.md`). Landing in
-stages.
+Per-owner multi-device release (see `docs/requirements-v1.2.md`).
 
 ### Added
 - **Multi-device tokens**: `API_TOKENS` (comma-separated `label:token` pairs)
@@ -23,6 +22,10 @@ stages.
   (`jira_search_issues`/`read`/`create`/`comment`), and Linear
   (`linear_search_issues`/`create`). Create/comment go through the confirmation
   gate. New env: `JIRA_BASE_URL`/`JIRA_EMAIL`/`JIRA_API_TOKEN`, `LINEAR_API_KEY`.
+- **Remote access**: `docker-compose.yml` + `Caddyfile` run the API behind a
+  TLS-terminating Caddy proxy (auto-HTTPS; the app port is not published); the
+  image now runs `prisma migrate deploy` on start. New `SECURITY.md` documents
+  the trust model and per-device token setup.
 
 ## [1.1.0] - 2026-07-17
 
