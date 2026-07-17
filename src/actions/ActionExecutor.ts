@@ -62,10 +62,29 @@ export class ActionExecutor {
     try {
       const message = await this.executeRaw(toolName, args);
       const ok = !/^\s*error\b/i.test(message);
+      if (!ok) this.maybeAlertFailure(toolName, message);
       return { ok, message };
     } catch (error) {
-      return { ok: false, message: error instanceof Error ? error.message : String(error) };
+      const message = error instanceof Error ? error.message : String(error);
+      this.maybeAlertFailure(toolName, message);
+      return { ok: false, message };
     }
+  }
+
+  // Notification tools alert about failures themselves — never alert on their
+  // own failure, or a broken channel would recurse.
+  private static readonly NOTIFY_TOOLS = new Set(['notify', 'send_telegram_message', 'send_discord_message']);
+
+  /**
+   * Proactively notify the user when a tool fails, if NOTIFY_ON_TOOL_FAILURE is
+   * enabled and a channel is configured. Fire-and-forget: alerting must never
+   * block or throw into the caller, and never recurse on notification tools.
+   */
+  private maybeAlertFailure(toolName: string, message: string): void {
+    if (process.env.NOTIFY_ON_TOOL_FAILURE !== 'true') return;
+    if (ActionExecutor.NOTIFY_TOOLS.has(toolName)) return;
+    const text = `⚠️ Tool "${toolName}" failed: ${message}`.slice(0, 1000);
+    void this.notify.notify(text).catch(() => { /* best-effort; swallow */ });
   }
 
   private async executeRaw(toolName: string, args: Record<string, string | number | boolean>): Promise<string> {
