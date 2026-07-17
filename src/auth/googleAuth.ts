@@ -35,8 +35,9 @@ export async function authenticate(): Promise<any> {
     access_type: 'offline',
     scope: [
       'https://www.googleapis.com/auth/gmail.compose',
-      'https://www.googleapis.com/auth/gmail.readonly', // <-- ADDED THIS SCOPE
-      'https://www.googleapis.com/auth/calendar.events'
+      'https://www.googleapis.com/auth/gmail.readonly',
+      'https://www.googleapis.com/auth/calendar.events',
+      'https://www.googleapis.com/auth/drive.readonly' // Google Drive read
     ],
   });
 

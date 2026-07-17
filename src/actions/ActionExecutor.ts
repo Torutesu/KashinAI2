@@ -12,6 +12,9 @@ import { CalendarIntegration } from '../integrations/CalendarIntegration';
 import { NotionIntegration } from '../integrations/NotionIntegration';
 import { BrowserAutomationIntegration } from '../integrations/BrowserAutomationIntegration';
 import { VSCodeIntegration } from '../integrations/VSCodeIntegration';
+import { GoogleDriveIntegration } from '../integrations/GoogleDriveIntegration';
+import { JiraIntegration } from '../integrations/JiraIntegration';
+import { LinearIntegration } from '../integrations/LinearIntegration';
 import { ToolResult, IntegrationError } from '../types/result';
 
 const execFileAsync = promisify(execFile);
@@ -24,6 +27,9 @@ export class ActionExecutor {
   private notion: NotionIntegration;
   private browserAutomation: BrowserAutomationIntegration;
   private vscode: VSCodeIntegration;
+  private gdrive: GoogleDriveIntegration;
+  private jira: JiraIntegration;
+  private linear: LinearIntegration;
 
   constructor() {
     this.slack = new SlackIntegration();
@@ -33,6 +39,9 @@ export class ActionExecutor {
     this.notion = new NotionIntegration();
     this.browserAutomation = new BrowserAutomationIntegration();
     this.vscode = new VSCodeIntegration();
+    this.gdrive = new GoogleDriveIntegration();
+    this.jira = new JiraIntegration();
+    this.linear = new LinearIntegration();
   }
 
   /**
@@ -143,6 +152,20 @@ export class ActionExecutor {
           return await this.calendar.updateEventTime(String(args.eventId), String(args.startTime), String(args.endTime));
         case 'calendar_delete_event':
           return await this.calendar.deleteEvent(String(args.eventId));
+
+        // Google Drive (read-only)
+        case 'gdrive_search_files': return await this.gdrive.searchFiles(String(args.query));
+        case 'gdrive_read_file': return await this.gdrive.readFile(String(args.fileId));
+
+        // Jira
+        case 'jira_search_issues': return await this.jira.searchIssues(String(args.query));
+        case 'jira_read_issue': return await this.jira.readIssue(String(args.issueKey));
+        case 'jira_create_issue': return await this.jira.createIssue(String(args.projectKey), String(args.summary), String(args.description || ''));
+        case 'jira_comment_issue': return await this.jira.commentIssue(String(args.issueKey), String(args.comment));
+
+        // Linear
+        case 'linear_search_issues': return await this.linear.searchIssues(String(args.query));
+        case 'linear_create_issue': return await this.linear.createIssue(String(args.teamId), String(args.title), String(args.description || ''));
 
         // VS Code Actions (NEW)
         case 'vscode_open_file': return await this.vscode.openFile(String(args.filePath));
