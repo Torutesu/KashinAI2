@@ -21,3 +21,10 @@ export function createReadyHandler(isReady: () => boolean) {
     }
   };
 }
+
+/** Version/info endpoint (used by the dashboard header). */
+export function createVersionHandler(version: string) {
+  return (_req: Request, res: Response) => {
+    res.json({ name: 'KashinAI2', version });
+  };
+}

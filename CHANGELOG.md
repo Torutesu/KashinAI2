@@ -3,6 +3,17 @@
 All notable changes to KashinAI2 are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] - 2026-07-17
+
+### Added
+- **Web dashboard**: a read-only monitoring UI served at `/` (from `public/`) —
+  live readiness, metrics counters, recent activity timeline, and semantic
+  memory search. Self-contained (no build step, theme-aware).
+- **`GET /version`** endpoint (`{ name, version }`), used by the dashboard header.
+- **Per-app privacy exclusion** (`CAPTURE_EXCLUDE_APPS`): while a listed app
+  (e.g. a password manager) is focused, collectors pause capture (clipboard,
+  screen OCR, selected text, app activity).
+
 ## [1.0.0] - 2026-07-17
 
 First hardened release. Built up from an audit of the original prototype
