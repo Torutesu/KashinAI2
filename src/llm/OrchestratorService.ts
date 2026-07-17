@@ -30,6 +30,7 @@ const DESTRUCTIVE_TOOLS = new Set([
   'jira_create_issue',
   'jira_comment_issue',
   'linear_create_issue',
+  'notify',
   'send_telegram_message',
   'send_discord_message',
 ]);

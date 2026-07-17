@@ -7,8 +7,14 @@ import axios from 'axios';
 import { IntegrationError } from '../types/result';
 
 export class TelegramIntegration {
+  readonly name = 'telegram';
   private token = process.env.TELEGRAM_BOT_TOKEN || '';
   private chatId = process.env.TELEGRAM_CHAT_ID || '';
+
+  /** True when the bot token and chat id are both present. */
+  isConfigured(): boolean {
+    return !!(this.token && this.chatId);
+  }
 
   async sendMessage(message: string): Promise<string> {
     if (!this.token || !this.chatId) {

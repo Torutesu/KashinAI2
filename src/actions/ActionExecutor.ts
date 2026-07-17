@@ -17,6 +17,7 @@ import { JiraIntegration } from '../integrations/JiraIntegration';
 import { LinearIntegration } from '../integrations/LinearIntegration';
 import { TelegramIntegration } from '../integrations/TelegramIntegration';
 import { DiscordIntegration } from '../integrations/DiscordIntegration';
+import { NotifyService } from '../integrations/NotifyService';
 import { ToolResult, IntegrationError } from '../types/result';
 
 const execFileAsync = promisify(execFile);
@@ -34,6 +35,7 @@ export class ActionExecutor {
   private linear: LinearIntegration;
   private telegram: TelegramIntegration;
   private discord: DiscordIntegration;
+  private notify: NotifyService;
 
   constructor() {
     this.slack = new SlackIntegration();
@@ -48,6 +50,7 @@ export class ActionExecutor {
     this.linear = new LinearIntegration();
     this.telegram = new TelegramIntegration();
     this.discord = new DiscordIntegration();
+    this.notify = new NotifyService([this.telegram, this.discord]);
   }
 
   /**
@@ -174,6 +177,7 @@ export class ActionExecutor {
         case 'linear_create_issue': return await this.linear.createIssue(String(args.teamId), String(args.title), String(args.description || ''));
 
         // Notifications
+        case 'notify': return await this.notify.notify(String(args.message));
         case 'send_telegram_message': return await this.telegram.sendMessage(String(args.message));
         case 'send_discord_message': return await this.discord.sendMessage(String(args.message));
 
