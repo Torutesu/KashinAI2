@@ -9,6 +9,9 @@ All notable changes to KashinAI2 are documented here. This project follows
 - **Public URL deployment via Cloudflare Tunnel**: `docker-compose.cloudflare.yml`
   runs the app behind a `cloudflared` tunnel (public HTTPS URL, TLS terminated by
   Cloudflare, no ports opened). `DEPLOY.md` documents named + quick tunnels.
+- **Notifications**: `send_telegram_message` (Telegram Bot API) and
+  `send_discord_message` (Discord webhook) — send-only, confirmation-gated. New
+  env: `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID`, `DISCORD_WEBHOOK_URL`.
 - **Public-safe auth** (`REQUIRE_AUTH_ALL=true`): gates the read routes
   (`/context/*`, `/memory/search`, `/metrics`, `/retrieve`) with the API token
   too, so an internet-facing deployment never serves captured context
