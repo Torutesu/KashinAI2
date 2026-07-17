@@ -3,7 +3,7 @@
 All notable changes to KashinAI2 are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.4.0] - 2026-07-17
 
 ### Added
 - **Unified `notify` tool**: sends one message to every configured notification
