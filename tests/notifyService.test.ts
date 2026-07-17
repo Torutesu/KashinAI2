@@ -2,15 +2,23 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { NotifyService, NotifyChannel } from '../src/integrations/NotifyService';
+import type { NotifyPayload } from '../src/integrations/notifyFormat';
 
-function fakeChannel(name: string, configured: boolean, behavior: 'ok' | 'fail' = 'ok'): NotifyChannel & { sent: string[] } {
+function fakeChannel(
+  name: string,
+  configured: boolean,
+  behavior: 'ok' | 'fail' = 'ok'
+): NotifyChannel & { sent: string[]; payloads: NotifyPayload[] } {
   const sent: string[] = [];
+  const payloads: NotifyPayload[] = [];
   return {
     name,
     sent,
+    payloads,
     isConfigured: () => configured,
-    async sendMessage(message: string) {
-      sent.push(message);
+    async sendNotification(payload: NotifyPayload) {
+      sent.push(payload.body);
+      payloads.push(payload);
       if (behavior === 'fail') throw new Error(`${name} failed`);
       return `sent via ${name}`;
     },
@@ -73,5 +81,19 @@ test('rejects an empty message before contacting channels', async () => {
   const tg = fakeChannel('telegram', true);
   const svc = new NotifyService([tg]);
   await assert.rejects(() => svc.notify('   ', undefined), /message is empty/);
+  assert.deepEqual(tg.sent, []);
+});
+
+test('passes a structured payload (title/level) through to channels', async () => {
+  const tg = fakeChannel('telegram', true);
+  const svc = new NotifyService([tg]);
+  await svc.notify({ title: 'Heads up', body: 'the thing happened', level: 'warn' }, undefined);
+  assert.deepEqual(tg.payloads[0], { title: 'Heads up', body: 'the thing happened', level: 'warn' });
+});
+
+test('rejects a structured payload with an empty body', async () => {
+  const tg = fakeChannel('telegram', true);
+  const svc = new NotifyService([tg]);
+  await assert.rejects(() => svc.notify({ title: 'x', body: '  ' }, undefined), /message is empty/);
   assert.deepEqual(tg.sent, []);
 });

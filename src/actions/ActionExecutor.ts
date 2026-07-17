@@ -18,6 +18,7 @@ import { LinearIntegration } from '../integrations/LinearIntegration';
 import { TelegramIntegration } from '../integrations/TelegramIntegration';
 import { DiscordIntegration } from '../integrations/DiscordIntegration';
 import { NotifyService } from '../integrations/NotifyService';
+import { parseLevel } from '../integrations/notifyFormat';
 import { ToolResult, IntegrationError } from '../types/result';
 
 const execFileAsync = promisify(execFile);
@@ -83,8 +84,9 @@ export class ActionExecutor {
   private maybeAlertFailure(toolName: string, message: string): void {
     if (process.env.NOTIFY_ON_TOOL_FAILURE !== 'true') return;
     if (ActionExecutor.NOTIFY_TOOLS.has(toolName)) return;
-    const text = `⚠️ Tool "${toolName}" failed: ${message}`.slice(0, 1000);
-    void this.notify.notify(text).catch(() => { /* best-effort; swallow */ });
+    void this.notify
+      .notify({ title: `Tool "${toolName}" failed`, body: message.slice(0, 900), level: 'error' })
+      .catch(() => { /* best-effort; swallow */ });
   }
 
   private async executeRaw(toolName: string, args: Record<string, string | number | boolean>): Promise<string> {
@@ -199,7 +201,11 @@ export class ActionExecutor {
         case 'linear_create_issue': return await this.linear.createIssue(String(args.teamId), String(args.title), String(args.description || ''));
 
         // Notifications
-        case 'notify': return await this.notify.notify(String(args.message));
+        case 'notify': return await this.notify.notify({
+          body: String(args.message),
+          title: args.title !== undefined ? String(args.title) : undefined,
+          level: parseLevel(args.level),
+        });
         case 'send_telegram_message': return await this.telegram.sendMessage(String(args.message));
         case 'send_discord_message': return await this.discord.sendMessage(String(args.message));
 

@@ -6,12 +6,14 @@
 // (comma-separated names, e.g. "telegram,discord"); unset means "all configured".
 
 import { IntegrationError } from '../types/result';
+import { NotifyPayload } from './notifyFormat';
 
 /** A send-only notification channel the router can fan a message out to. */
 export interface NotifyChannel {
   readonly name: string;
   isConfigured(): boolean;
-  sendMessage(message: string): Promise<string>;
+  // Each channel renders the payload in its own native style (see notifyFormat).
+  sendNotification(payload: NotifyPayload): Promise<string>;
 }
 
 export class NotifyService {
@@ -31,12 +33,14 @@ export class NotifyService {
   }
 
   /**
-   * Deliver `message` to all selected, configured channels concurrently.
+   * Deliver a message (string) or structured payload (title/level/body) to all
+   * selected, configured channels concurrently, each rendered in its own style.
    * Succeeds if at least one channel accepts it; throws only when nothing is
    * eligible or every attempt fails.
    */
-  async notify(message: string, envValue = process.env.NOTIFY_CHANNELS): Promise<string> {
-    if (!message || !message.trim()) {
+  async notify(input: string | NotifyPayload, envValue = process.env.NOTIFY_CHANNELS): Promise<string> {
+    const payload: NotifyPayload = typeof input === 'string' ? { body: input } : input;
+    if (!payload.body || !payload.body.trim()) {
       throw new IntegrationError('notify: message is empty');
     }
     const targets = this.selected(envValue).filter((c) => c.isConfigured());
@@ -46,7 +50,7 @@ export class NotifyService {
       );
     }
 
-    const results = await Promise.allSettled(targets.map((c) => c.sendMessage(message)));
+    const results = await Promise.allSettled(targets.map((c) => c.sendNotification(payload)));
     const ok: string[] = [];
     const failed: string[] = [];
     results.forEach((r, i) => {

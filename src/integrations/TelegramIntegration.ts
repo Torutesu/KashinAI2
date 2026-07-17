@@ -5,6 +5,7 @@
 
 import axios from 'axios';
 import { IntegrationError } from '../types/result';
+import { NotifyPayload, formatTelegramHtml } from './notifyFormat';
 
 export class TelegramIntegration {
   readonly name = 'telegram';
@@ -16,18 +17,29 @@ export class TelegramIntegration {
     return !!(this.token && this.chatId);
   }
 
-  async sendMessage(message: string): Promise<string> {
+  private async post(text: string, parseMode?: string): Promise<string> {
     if (!this.token || !this.chatId) {
       throw new IntegrationError('TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID not set in .env');
     }
     try {
       await axios.post(`https://api.telegram.org/bot${this.token}/sendMessage`, {
         chat_id: this.chatId,
-        text: message,
+        text,
+        ...(parseMode ? { parse_mode: parseMode } : {}),
       });
       return 'Successfully sent Telegram message.';
     } catch (error) {
       throw new IntegrationError('Failed to send Telegram message', error);
     }
+  }
+
+  /** Plain send (used by the channel-specific tool). */
+  async sendMessage(message: string): Promise<string> {
+    return this.post(message);
+  }
+
+  /** Formatted send for the notify fan-out: bold title + emoji via HTML. */
+  async sendNotification(payload: NotifyPayload): Promise<string> {
+    return this.post(formatTelegramHtml(payload), 'HTML');
   }
 }

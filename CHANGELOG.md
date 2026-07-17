@@ -6,6 +6,12 @@ All notable changes to KashinAI2 are documented here. This project follows
 ## [Unreleased]
 
 ### Added
+- **Channel-native notification formatting**: `notify` now accepts an optional
+  `title` and `level` (`info`/`warn`/`error`). Each channel renders them in its
+  own style — Telegram via HTML (bold title + severity icon), Discord via
+  Markdown — instead of a single plain string. Proactive failure alerts use it
+  (`error` level with the tool name as the title). Tool parameter schemas can now
+  declare `enum` values.
 - **Google Drive update & append** (`gdrive_update_file`, `gdrive_append_file`):
   replace the full contents of, or append plain text to, an existing Google Doc
   this app created. Both are confirmation-gated and use the same least-privileged
