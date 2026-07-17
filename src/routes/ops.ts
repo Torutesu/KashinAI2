@@ -5,10 +5,16 @@
 
 import { Request, Response } from 'express';
 import { renderPrometheus } from '../utils/metrics';
+import { getSeries } from '../utils/metricsHistory';
 
 export function metricsHandler(_req: Request, res: Response) {
   res.setHeader('Content-Type', 'text/plain; version=0.0.4');
   res.send(renderPrometheus());
+}
+
+/** Time series of metric snapshots for the dashboard graph. */
+export function metricsHistoryHandler(_req: Request, res: Response) {
+  res.json({ series: getSeries() });
 }
 
 /** Readiness probe: 200 when ready, 503 otherwise (e.g. vector DB still loading). */

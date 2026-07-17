@@ -15,6 +15,8 @@ import { checkExternalBinaries } from './utils/binaryCheck';
 import { assertValidConfig } from './config';
 import { log } from './utils/logger';
 import { prisma } from './db/prisma';
+import { snapshot } from './utils/metrics';
+import { recordSample } from './utils/metricsHistory';
 
 // Validate configuration before anything else (throws on hard errors).
 assertValidConfig();
@@ -40,6 +42,11 @@ const collectors = [
 
 log.info('Starting background collectors...');
 collectors.forEach(c => c.start());
+
+// Sample metrics into the time series every 30s for the dashboard graph.
+recordSample(snapshot(), Date.now());
+const metricsSampler = setInterval(() => recordSample(snapshot(), Date.now()), 30000);
+metricsSampler.unref?.();
 
 // Retention policy: periodically prune memories older than MEMORY_RETENTION_DAYS
 // (default 30; set to 0 to disable) so the local stores don't grow unbounded.
@@ -70,6 +77,7 @@ async function shutdown(signal: string) {
   // Stop producing new work.
   collectors.forEach(c => c.stop());
   if (pruneTimer) clearInterval(pruneTimer);
+  clearInterval(metricsSampler);
 
   // Stop accepting new connections, then flush the DB connection.
   await new Promise<void>((resolve) => httpServer.close(() => resolve()));

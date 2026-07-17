@@ -17,7 +17,7 @@ import { requireApiToken, requireAuthWhenPublic, corsOriginCheck, listDevices } 
 import { createRateLimiter } from './middleware/rateLimit';
 import { PrismaConversationStore } from './memory/PrismaConversationStore';
 import { setVSCodeLiveState } from './integrations/vscodeLiveState';
-import { metricsHandler, createReadyHandler, createVersionHandler } from './routes/ops';
+import { metricsHandler, metricsHistoryHandler, createReadyHandler, createVersionHandler } from './routes/ops';
 import { setExcludeApps } from './collectors/activeAppState';
 import { getSetting, setSetting } from './settings/settingsStore';
 import { recordAction } from './utils/actionLog';
@@ -83,6 +83,7 @@ app.get('/health', (req: Request, res: Response) => {
 // is gated when REQUIRE_AUTH_ALL is set (public deployment).
 app.get('/ready', createReadyHandler(() => memoryService.isReady()));
 app.get('/metrics', requireAuthWhenPublic, metricsHandler);
+app.get('/metrics/history', requireAuthWhenPublic, metricsHistoryHandler);
 app.get('/version', createVersionHandler(APP_VERSION));
 
 // Configured device labels (never the secrets); requires a valid token.
