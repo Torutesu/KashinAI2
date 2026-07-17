@@ -7,8 +7,9 @@ import assert from 'node:assert/strict';
 import express from 'express';
 import type { Server } from 'node:http';
 import path from 'path';
-import { metricsHandler, createReadyHandler, createVersionHandler } from '../src/routes/ops';
-import { increment, resetMetrics } from '../src/utils/metrics';
+import { metricsHandler, metricsHistoryHandler, createReadyHandler, createVersionHandler } from '../src/routes/ops';
+import { increment, resetMetrics, snapshot } from '../src/utils/metrics';
+import { recordSample, clearSeries } from '../src/utils/metricsHistory';
 
 let server: Server;
 let baseUrl = '';
@@ -17,8 +18,12 @@ let ready = false;
 before(async () => {
   resetMetrics();
   increment('events_stored_total', 7);
+  clearSeries();
+  recordSample(snapshot(), 1000);
+  recordSample(snapshot(), 2000);
   const app = express();
   app.get('/metrics', metricsHandler);
+  app.get('/metrics/history', metricsHistoryHandler);
   app.get('/ready', createReadyHandler(() => ready));
   app.get('/version', createVersionHandler('9.9.9'));
   // Serve the real dashboard from ./public (cwd is the repo root under the test runner).
@@ -43,6 +48,15 @@ test('/metrics returns Prometheus text with counters', async () => {
   assert.match(res.headers.get('content-type') || '', /text\/plain/);
   const body = await res.text();
   assert.match(body, /events_stored_total 7/);
+});
+
+test('/metrics/history returns the sampled time series', async () => {
+  const res = await fetch(`${baseUrl}/metrics/history`);
+  assert.equal(res.status, 200);
+  const body = (await res.json()) as { series: { t: number; values: Record<string, number> }[] };
+  assert.equal(body.series.length, 2);
+  assert.equal(body.series[0].t, 1000);
+  assert.equal(body.series[1].values.events_stored_total, 7);
 });
 
 test('/ready reports 503 until ready, then 200', async () => {
