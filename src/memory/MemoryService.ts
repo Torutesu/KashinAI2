@@ -5,6 +5,7 @@ import { VectorService } from './VectorService';
 import { retentionCutoff } from './retention';
 import { redactSecrets } from '../security/redaction';
 import { isLowSignalText } from './noiseFilter';
+import { increment } from '../utils/metrics';
 
 // Content from these sources is raw user data that routinely contains secrets
 // (passwords copied to the clipboard, API keys on screen). Redact before storing.
@@ -69,9 +70,15 @@ export class MemoryService {
         await prisma.screenOCR.create({ data: { text: event.content! } });
         await this.maybeEmbed(event.content!, 'OCR');
       }
+      increment('events_stored_total');
     } catch (error) {
       console.error('[MemoryService] Failed to store event:', error);
     }
+  }
+
+  /** Readiness: the vector store (LanceDB + embedding model) is connected. */
+  isReady(): boolean {
+    return this.vectorService.connected;
   }
 
   async getRecentContext(limit: number = 3) {

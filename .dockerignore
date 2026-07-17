@@ -1,0 +1,10 @@
+node_modules
+dist
+.git
+.env
+*.db
+prisma/dev.db
+lancedb/
+kashinai-vscode/out
+kashinai-vscode/node_modules
+tests

@@ -54,12 +54,15 @@ confirmation gate on destructive actions.
   (`src/middleware/rateLimit.ts`, `RATE_LIMIT_*` env).
 - ~~**Config validation** (fail fast on missing/invalid env).~~ **Done** —
   `src/config.ts` (`assertValidConfig` at startup).
-- **Dockerfile + compose** for reproducible deploys.
-- **Graceful shutdown flush** of pending writes; **/ready** probe.
+- ~~**Dockerfile** for reproducible deploys.~~ **Done** — multi-stage
+  `Dockerfile` + `.dockerignore`.
+- ~~**/ready** probe~~ **Done** (readiness gated on the vector store).
+  **Graceful shutdown flush** of pending writes still pending.
 - ~~**Structured logging** with levels, replacing console.*.~~ **Done (core)** —
   leveled logger (`LOG_LEVEL`/`LOG_FORMAT`, `src/utils/logger.ts`), adopted at
   the entry points; remaining console.* can migrate incrementally.
-- **Metrics** (basic counters: events collected, tool calls, errors).
+- ~~**Metrics** (basic counters: events collected, tool calls, errors).~~
+  **Done** — `src/utils/metrics.ts` + `GET /metrics` (Prometheus text).
 
 ### Testing
 - ~~Integration unit tests with **mocked HTTP** (Slack/GitHub/Notion/Gmail).~~

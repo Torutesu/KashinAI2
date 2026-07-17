@@ -10,6 +10,11 @@ export class VectorService {
   private readonly TABLE_NAME = 'memory_vectors';
   private readonly TOOL_TABLE_NAME = 'tool_vectors';
 
+  /** True once LanceDB + the embedding model are ready. */
+  get connected(): boolean {
+    return this.isConnected;
+  }
+
   async initialize(): Promise<void> {
     if (this.isConnected) return;
  
