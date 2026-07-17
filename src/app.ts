@@ -2,6 +2,8 @@
 import { log } from './utils/logger';
 import './loadEnv'; // must be first — populates process.env before config reads it
 import express, { Request, Response, NextFunction } from 'express';
+import fs from 'fs';
+import path from 'path';
 import cors from 'cors';
 import { memoryService } from './memory/instance';
 import { RetrieverService } from './retriever/RetrieverService';
@@ -15,7 +17,13 @@ import { requireApiToken, corsOriginCheck } from './middleware/auth';
 import { createRateLimiter } from './middleware/rateLimit';
 import { PrismaConversationStore } from './memory/PrismaConversationStore';
 import { setVSCodeLiveState } from './integrations/vscodeLiveState';
-import { metricsHandler, createReadyHandler } from './routes/ops';
+import { metricsHandler, createReadyHandler, createVersionHandler } from './routes/ops';
+
+// Resolve the app version once (cwd is the project root in all run modes).
+let APP_VERSION = '0.0.0';
+try {
+  APP_VERSION = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf-8')).version || APP_VERSION;
+} catch { /* keep default */ }
 
 const app = express();
 app.use(cors({ origin: corsOriginCheck }));
@@ -25,6 +33,9 @@ app.use(createRateLimiter());
 
 // Limit payload size to 1mb to prevent crashing
 app.use(express.json({ limit: '1mb' }));
+
+// Read-only monitoring dashboard (served from ./public).
+app.use(express.static(path.join(process.cwd(), 'public')));
 
 // Dependency Injection (Singletons) — memoryService is shared process-wide.
 const retrieverService = new RetrieverService(memoryService);
@@ -62,6 +73,7 @@ app.get('/health', (req: Request, res: Response) => {
 // Operational endpoints (unauthenticated, read-only).
 app.get('/ready', createReadyHandler(() => memoryService.isReady()));
 app.get('/metrics', metricsHandler);
+app.get('/version', createVersionHandler(APP_VERSION));
 
 // --- Context APIs ---
 app.get('/context/current', async (req: Request, res: Response) => {

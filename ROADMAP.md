@@ -113,7 +113,9 @@ confirmation gate on destructive actions.
    / vLLM) works through the same path.
 10. **More integrations** (Jira/Linear, Telegram/Discord) and **per-app privacy
     rules** (exclude sensitive apps from capture).
-11. **Web dashboard** to browse memory, review actions, and manage privacy.
+11. ~~**Web dashboard** to browse memory and review status.~~ **Done (v1.1.0)** —
+    read-only dashboard at `/` (`public/index.html`): readiness, metrics, recent
+    activity, semantic search. Privacy management remains a future addition.
 
 ---
 

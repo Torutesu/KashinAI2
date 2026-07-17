@@ -140,9 +140,11 @@ when `API_TOKEN` is set. Pass an optional `x-session-id` header on `/chat` and
 `/voice/query` to keep separate conversation histories.
 
 ```
+GET  /                         # read-only monitoring dashboard (HTML)
 GET  /health
 GET  /ready                    # readiness probe (503 until vector DB ready)
 GET  /metrics                  # Prometheus counters
+GET  /version                  # { name, version }
 GET  /context/current
 GET  /context/recent?limit=10
 GET  /memory/search?query=<q>
