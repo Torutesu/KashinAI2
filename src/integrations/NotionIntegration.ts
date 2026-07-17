@@ -1,5 +1,6 @@
 // src/integrations/NotionIntegration.ts
 import { Client } from '@notionhq/client';
+import { IntegrationError } from '../types/result';
 
 export class NotionIntegration {
   private notion: Client;
@@ -8,9 +9,8 @@ export class NotionIntegration {
     this.notion = new Client({ auth: process.env.NOTION_API_KEY || '' });
   }
 
-  /** Returns an error string if the key is missing, else null. */
-  private missingKey(): string | null {
-    return process.env.NOTION_API_KEY ? null : 'Error: NOTION_API_KEY not set in .env';
+  private requireKey() {
+    if (!process.env.NOTION_API_KEY) throw new IntegrationError('NOTION_API_KEY not set in .env');
   }
 
   // Extract plain text from any block type that carries rich_text.
@@ -24,8 +24,7 @@ export class NotionIntegration {
 
   // 1. Search Pages
   async searchPages(query: string): Promise<string> {
-    const keyErr = this.missingKey();
-    if (keyErr) return keyErr;
+    this.requireKey();
     try {
       const response = await this.notion.search({
         query: query,
@@ -36,7 +35,6 @@ export class NotionIntegration {
 
       let result = `Found pages:\n`;
       for (const page of response.results) {
-        // Safely extract title from various possible page property structures
         const titleProp = (page as any).properties?.title?.title?.[0]?.plain_text ||
                           (page as any).properties?.Name?.title?.[0]?.plain_text ||
                           'Untitled';
@@ -44,19 +42,15 @@ export class NotionIntegration {
       }
       return result;
     } catch (error) {
-      return `Error searching Notion: ${error instanceof Error ? error.message : String(error)}`;
+      throw new IntegrationError('Failed to search Notion', error);
     }
   }
 
   // 2. Read Page Content
   async readPage(pageId: string): Promise<string> {
-    const keyErr = this.missingKey();
-    if (keyErr) return keyErr;
+    this.requireKey();
     try {
-      const blocks = await this.notion.blocks.children.list({
-        block_id: pageId,
-        page_size: 25,
-      });
+      const blocks = await this.notion.blocks.children.list({ block_id: pageId, page_size: 25 });
 
       if (blocks.results.length === 0) return `Page is empty or has no text blocks.`;
 
@@ -68,14 +62,13 @@ export class NotionIntegration {
       }
       return content.trim() === 'Page Content:' ? 'Page has no readable text content.' : content;
     } catch (error) {
-      return `Error reading page: ${error instanceof Error ? error.message : String(error)}`;
+      throw new IntegrationError('Failed to read page', error);
     }
   }
 
   // 3. Create Page (in a database)
   async createPage(databaseId: string, title: string): Promise<string> {
-    const keyErr = this.missingKey();
-    if (keyErr) return keyErr;
+    this.requireKey();
     try {
       // Discover the DB's actual title property name instead of assuming "Name".
       const db = await this.notion.databases.retrieve({ database_id: databaseId });
@@ -85,44 +78,38 @@ export class NotionIntegration {
       await this.notion.pages.create({
         parent: { database_id: databaseId },
         properties: {
-          [titlePropName]: {
-            title: [{ text: { content: title } }]
-          }
+          [titlePropName]: { title: [{ text: { content: title } }] }
         }
       });
       return `Successfully created Notion page: ${title}`;
     } catch (error) {
-      return `Error creating Notion page: ${error instanceof Error ? error.message : String(error)}`;
+      throw new IntegrationError('Failed to create Notion page', error);
     }
   }
 
   // 4. Edit Page (Append text block to bottom of page)
   async editPage(pageId: string, text: string): Promise<string> {
-    const keyErr = this.missingKey();
-    if (keyErr) return keyErr;
+    this.requireKey();
     try {
       await this.notion.blocks.children.append({
-        block_id: pageId, // Appends to the page's block tree
+        block_id: pageId,
         children: [
           {
             object: 'block',
             type: 'paragraph',
-            paragraph: {
-              rich_text: [{ type: 'text', text: { content: text } }]
-            }
+            paragraph: { rich_text: [{ type: 'text', text: { content: text } }] }
           }
         ]
       });
       return `Successfully appended text to Notion page ${pageId}.`;
     } catch (error) {
-      return `Error editing Notion page: ${error instanceof Error ? error.message : String(error)}`;
+      throw new IntegrationError('Failed to edit Notion page', error);
     }
   }
 
   // 5. Update Database (Change Database Title)
   async updateDatabase(databaseId: string, newTitle: string): Promise<string> {
-    const keyErr = this.missingKey();
-    if (keyErr) return keyErr;
+    this.requireKey();
     try {
       await this.notion.databases.update({
         database_id: databaseId,
@@ -130,7 +117,7 @@ export class NotionIntegration {
       });
       return `Successfully updated Notion database title to: ${newTitle}`;
     } catch (error) {
-      return `Error updating Notion database: ${error instanceof Error ? error.message : String(error)}`;
+      throw new IntegrationError('Failed to update Notion database', error);
     }
   }
 }

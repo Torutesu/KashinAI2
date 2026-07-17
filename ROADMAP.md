@@ -22,13 +22,11 @@ confirmation gate on destructive actions.
 ## 2. Known gaps (not yet addressed)
 
 ### Correctness / robustness
-- **Errors as strings** — *mostly addressed.* `ActionExecutor.execute` returns a
-  typed `ToolResult { ok, message }`; failures now propagate as a typed
-  `IntegrationError` (thrown) and are classified by exception, with the legacy
-  "Error…" string convention kept as a fallback for not-yet-migrated
-  integrations. The action layer's own paths (URL/dir/vscode/unknown-tool) throw
-  typed errors. Remaining (mechanical): migrate each integration's guards/catches
-  to throw `IntegrationError` too.
+- ~~**Errors as strings.**~~ **Done** — failures propagate as a typed
+  `IntegrationError` across all integrations (Slack/GitHub/Notion/Gmail/Calendar/
+  Browser/VS Code) and the action layer's own paths; `ActionExecutor.execute`
+  classifies by exception into `ToolResult { ok, message }`. Integration methods
+  now return a success string or throw.
 - **Gemini function-response role** — *partly addressed.* Structured tool
   results are now fed back with explicit success/failure. Remaining: use the
   SDK's real `functionCall`/`functionResponse` parts (needs a live Gemini key to

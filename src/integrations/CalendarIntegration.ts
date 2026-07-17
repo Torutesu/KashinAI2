@@ -1,6 +1,7 @@
 // src/integrations/CalendarIntegration.ts
 import { google } from 'googleapis';
 import { getGoogleAuthClient } from '../auth/googleClient';
+import { IntegrationError } from '../types/result';
 
 export class CalendarIntegration {
   private async getAuth() {
@@ -15,7 +16,7 @@ export class CalendarIntegration {
     return tz ? { dateTime, timeZone: tz } : { dateTime };
   }
 
-  // 1. Create Event (Existing)
+  // 1. Create Event
   async createEvent(summary: string, startTime: string, endTime: string): Promise<string> {
     try {
       const auth = await this.getAuth();
@@ -28,11 +29,10 @@ export class CalendarIntegration {
       const response = await calendar.events.insert({ calendarId: 'primary', requestBody: event });
       return `Successfully created calendar event: ${response.data.summary} (ID: ${response.data.id})`;
     } catch (error) {
-      return `Error creating calendar event: ${error instanceof Error ? error.message : String(error)}`;
+      throw new IntegrationError('Failed to create calendar event', error);
     }
   }
 
-  // 2. Read Upcoming Events
   // 2. Read Upcoming Events
   async readUpcomingEvents(): Promise<string> {
     try {
@@ -59,7 +59,7 @@ export class CalendarIntegration {
       }
       return result;
     } catch (error) {
-      return `Error reading events: ${error instanceof Error ? error.message : String(error)}`;
+      throw new IntegrationError('Failed to read events', error);
     }
   }
 
@@ -82,7 +82,7 @@ export class CalendarIntegration {
 
       return `Successfully updated event ${response.data.summary} (ID: ${eventId}). New time: ${startTime} to ${endTime}`;
     } catch (error) {
-      return `Error updating event: ${error instanceof Error ? error.message : String(error)}`;
+      throw new IntegrationError('Failed to update event', error);
     }
   }
 
@@ -92,14 +92,11 @@ export class CalendarIntegration {
       const auth = await this.getAuth();
       const calendar = google.calendar({ version: 'v3', auth });
 
-      await calendar.events.delete({
-        calendarId: 'primary',
-        eventId: eventId,
-      });
+      await calendar.events.delete({ calendarId: 'primary', eventId: eventId });
 
       return `Successfully deleted event with ID: ${eventId}`;
     } catch (error) {
-      return `Error deleting event: ${error instanceof Error ? error.message : String(error)}`;
+      throw new IntegrationError('Failed to delete event', error);
     }
   }
 }

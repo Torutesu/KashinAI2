@@ -1,5 +1,5 @@
-
 import axios from 'axios';
+import { IntegrationError } from '../types/result';
 
 export class SlackIntegration {
   private token: string;
@@ -12,6 +12,10 @@ export class SlackIntegration {
   constructor() {
     this.token = process.env.SLACK_BOT_TOKEN || '';
     this.userToken = process.env.SLACK_USER_TOKEN || '';
+  }
+
+  private requireToken() {
+    if (!this.token) throw new IntegrationError('SLACK_BOT_TOKEN not set in .env');
   }
 
   private looksLikeChannelId(value: string): boolean {
@@ -28,7 +32,7 @@ export class SlackIntegration {
         headers: { Authorization: `Bearer ${this.token}` },
         params: { types: 'public_channel,private_channel', limit: 1000, cursor },
       });
-      if (!res.data.ok) throw new Error(`Slack API Error: ${res.data.error}`);
+      if (!res.data.ok) throw new IntegrationError(`Slack API error: ${res.data.error}`);
       channels.push(...(res.data.channels || []));
       cursor = res.data.response_metadata?.next_cursor;
       if (!cursor) break;
@@ -45,7 +49,7 @@ export class SlackIntegration {
 
     const channels = await this.fetchAllChannels();
     const match = channels.find((c: any) => c.name.toLowerCase() === name);
-    if (!match) throw new Error(`Channel not found: #${name}`);
+    if (!match) throw new IntegrationError(`Channel not found: #${name}`);
 
     this.channelIdCache.set(name, match.id);
     return match.id;
@@ -53,7 +57,7 @@ export class SlackIntegration {
 
   // 1. Send Message
   async sendMessage(channel: string, message: string): Promise<string> {
-    if (!this.token) return 'Error: SLACK_BOT_TOKEN not set in .env';
+    this.requireToken();
     try {
       const channelId = await this.resolveChannelId(channel);
       await axios.post('https://slack.com/api/chat.postMessage', {
@@ -62,13 +66,13 @@ export class SlackIntegration {
       }, { headers: { Authorization: `Bearer ${this.token}` } });
       return `Successfully sent Slack message to ${channel}.`;
     } catch (error) {
-      return `Error sending Slack message: ${error instanceof Error ? error.message : String(error)}`;
+      throw new IntegrationError('Failed to send Slack message', error);
     }
   }
 
   // 2. Reply to a Thread
   async replyToThread(channel: string, threadTs: string, message: string): Promise<string> {
-    if (!this.token) return 'Error: SLACK_BOT_TOKEN not set in .env';
+    this.requireToken();
     try {
       const channelId = await this.resolveChannelId(channel);
       await axios.post('https://slack.com/api/chat.postMessage', {
@@ -78,13 +82,13 @@ export class SlackIntegration {
       }, { headers: { Authorization: `Bearer ${this.token}` } });
       return `Successfully replied to thread ${threadTs} in ${channel}.`;
     } catch (error) {
-      return `Error replying to thread: ${error instanceof Error ? error.message : String(error)}`;
+      throw new IntegrationError('Failed to reply to thread', error);
     }
   }
 
   // 3. Read Recent Messages
   async readRecentMessages(channel: string): Promise<string> {
-    if (!this.token) return 'Error: SLACK_BOT_TOKEN not set in .env';
+    this.requireToken();
     try {
       const channelId = await this.resolveChannelId(channel);
       const res = await axios.get('https://slack.com/api/conversations.history', {
@@ -92,7 +96,7 @@ export class SlackIntegration {
         params: { channel: channelId, limit: 5 }
       });
 
-      if (!res.data.ok) return `Slack API Error: ${res.data.error}`;
+      if (!res.data.ok) throw new IntegrationError(`Slack API error: ${res.data.error}`);
 
       let messages = `Recent messages in ${channel}:\n`;
       for (const msg of res.data.messages) {
@@ -100,13 +104,13 @@ export class SlackIntegration {
       }
       return messages;
     } catch (error) {
-      return `Error reading messages: ${error instanceof Error ? error.message : String(error)}`;
+      throw new IntegrationError('Failed to read messages', error);
     }
   }
 
   // 4. Search Channels
   async searchChannels(query: string): Promise<string> {
-    if (!this.token) return 'Error: SLACK_BOT_TOKEN not set in .env';
+    this.requireToken();
     try {
       const channels = await this.fetchAllChannels();
 
@@ -120,7 +124,7 @@ export class SlackIntegration {
       matching.forEach((c: any) => result += `- Name: ${c.name} | ID: ${c.id}\n`);
       return result;
     } catch (error) {
-      return `Error searching channels: ${error instanceof Error ? error.message : String(error)}`;
+      throw new IntegrationError('Failed to search channels', error);
     }
   }
 
@@ -128,7 +132,7 @@ export class SlackIntegration {
   async searchConversations(query: string): Promise<string> {
     // search.messages only works with a user token (xoxp-…), not a bot token.
     if (!this.userToken) {
-      return 'Error: Slack message search requires SLACK_USER_TOKEN (a user token, xoxp-…). Bot tokens cannot call search.messages.';
+      throw new IntegrationError('Slack message search requires SLACK_USER_TOKEN (a user token, xoxp-…). Bot tokens cannot call search.messages.');
     }
     try {
       const res = await axios.get('https://slack.com/api/search.messages', {
@@ -136,7 +140,7 @@ export class SlackIntegration {
         params: { query, count: 5 }
       });
 
-      if (!res.data.ok) return `Slack API Error: ${res.data.error}`;
+      if (!res.data.ok) throw new IntegrationError(`Slack API error: ${res.data.error}`);
       if (!res.data.messages.matches || res.data.messages.matches.length === 0) {
         return `No messages found matching: ${query}`;
       }
@@ -147,7 +151,7 @@ export class SlackIntegration {
       }
       return result;
     } catch (error) {
-      return `Error searching conversations: ${error instanceof Error ? error.message : String(error)}`;
+      throw new IntegrationError('Failed to search conversations', error);
     }
   }
 }

@@ -1,6 +1,7 @@
 // src/integrations/BrowserAutomationIntegration.ts
 import { chromium, Browser, BrowserContext, Page } from 'playwright';
 import { isSafeHttpUrl } from '../security/inputValidation';
+import { IntegrationError } from '../types/result';
 
 export class BrowserAutomationIntegration {
   private browser: Browser | null = null;
@@ -24,14 +25,14 @@ export class BrowserAutomationIntegration {
   // 1. Navigate current tab
   async navigate(url: string): Promise<string> {
     if (!isSafeHttpUrl(url)) {
-      return 'Error: Only http:// and https:// URLs are allowed.';
+      throw new IntegrationError('Only http:// and https:// URLs are allowed.');
     }
     try {
       const page = await this.init();
       await page.goto(url);
       return `Successfully navigated to ${url}.`;
     } catch (error) {
-      return `Error navigating: ${error instanceof Error ? error.message : String(error)}`;
+      throw new IntegrationError('Failed to navigate', error);
     }
   }
 
@@ -43,14 +44,14 @@ export class BrowserAutomationIntegration {
       const title = await page.title();
       return `Current Tab -> Title: "${title}" | URL: ${url}`;
     } catch (error) {
-      return `Error getting current tab: ${error instanceof Error ? error.message : String(error)}`;
+      throw new IntegrationError('Failed to get current tab', error);
     }
   }
 
   // 3. Open New Tab
   async openNewTab(url: string): Promise<string> {
     if (!isSafeHttpUrl(url)) {
-      return 'Error: Only http:// and https:// URLs are allowed.';
+      throw new IntegrationError('Only http:// and https:// URLs are allowed.');
     }
     try {
       if (!this.context) await this.init();
@@ -59,7 +60,7 @@ export class BrowserAutomationIntegration {
       this.page = newPage; // Set focus to the new tab
       return `Successfully opened new tab at ${url}.`;
     } catch (error) {
-      return `Error opening new tab: ${error instanceof Error ? error.message : String(error)}`;
+      throw new IntegrationError('Failed to open new tab', error);
     }
   }
 
@@ -68,7 +69,7 @@ export class BrowserAutomationIntegration {
     try {
       const page = await this.init();
       await page.close();
-      
+
       // Shift focus to the last available tab if any exist
       if (this.context && this.context.pages().length > 0) {
         this.page = this.context.pages()[this.context.pages().length - 1];
@@ -77,7 +78,7 @@ export class BrowserAutomationIntegration {
       }
       return `Successfully closed the current tab.`;
     } catch (error) {
-      return `Error closing tab: ${error instanceof Error ? error.message : String(error)}`;
+      throw new IntegrationError('Failed to close tab', error);
     }
   }
 
@@ -88,7 +89,7 @@ export class BrowserAutomationIntegration {
       const text = await page.innerText('body');
       return text.substring(0, 2000);
     } catch (error) {
-      return `Error reading content: ${error instanceof Error ? error.message : String(error)}`;
+      throw new IntegrationError('Failed to read content', error);
     }
   }
 
@@ -99,7 +100,7 @@ export class BrowserAutomationIntegration {
       await page.click(selector, { timeout: 5000 });
       return `Successfully clicked element: ${selector}`;
     } catch (error) {
-      return `Error clicking: ${error instanceof Error ? error.message : String(error)}`;
+      throw new IntegrationError('Failed to click', error);
     }
   }
 
@@ -112,7 +113,7 @@ export class BrowserAutomationIntegration {
       // would otherwise leak into logs and the model's context.
       return `Successfully filled ${selector}.`;
     } catch (error) {
-      return `Error filling form: ${error instanceof Error ? error.message : String(error)}`;
+      throw new IntegrationError('Failed to fill form', error);
     }
   }
 
@@ -127,7 +128,7 @@ export class BrowserAutomationIntegration {
       }
       return `Browser closed.`;
     } catch (error) {
-      return `Error closing browser: ${error instanceof Error ? error.message : String(error)}`;
+      throw new IntegrationError('Failed to close browser', error);
     }
   }
 }

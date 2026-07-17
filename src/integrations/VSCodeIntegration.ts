@@ -5,6 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { getVSCodeLiveState, isLiveStateFresh } from './vscodeLiveState';
+import { IntegrationError } from '../types/result';
 
 const execFileAsync = promisify(execFile);
 
@@ -30,7 +31,7 @@ export class VSCodeIntegration {
 
   // 1. Open File
   async openFile(filePath: string): Promise<string> {
-    if (!filePath || typeof filePath !== 'string') return 'Error: No file path provided.';
+    if (!filePath || typeof filePath !== 'string') throw new IntegrationError('No file path provided.');
     try {
       // execFile passes the path as a single argv entry — no shell, so path
       // contents can't break out and run arbitrary commands. On Windows the
@@ -42,7 +43,7 @@ export class VSCodeIntegration {
       }
       return `Successfully opened ${filePath} in VS Code.`;
     } catch (error) {
-      return `Error opening VS Code. Ensure the 'code' command is installed in your PATH.`;
+      throw new IntegrationError("Could not open VS Code. Ensure the 'code' command is on your PATH", error);
     }
   }
 

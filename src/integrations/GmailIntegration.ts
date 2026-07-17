@@ -2,6 +2,7 @@
 import { google } from 'googleapis';
 import { assertSafeHeaderValue } from '../security/inputValidation';
 import { getGoogleAuthClient } from '../auth/googleClient';
+import { IntegrationError } from '../types/result';
 
 export class GmailIntegration {
   private async getAuth() {
@@ -22,7 +23,7 @@ export class GmailIntegration {
       await gmail.users.drafts.create({ userId: 'me', requestBody: { message: { raw: encodedEmail } } });
       return `Successfully created Gmail draft to ${to}.`;
     } catch (error) {
-      return `Error creating Gmail draft: ${error instanceof Error ? error.message : String(error)}`;
+      throw new IntegrationError('Failed to create Gmail draft', error);
     }
   }
 
@@ -39,7 +40,7 @@ export class GmailIntegration {
       await gmail.users.messages.send({ userId: 'me', requestBody: { raw: encodedEmail } });
       return `Successfully sent email to ${to}.`;
     } catch (error) {
-      return `Error sending email: ${error instanceof Error ? error.message : String(error)}`;
+      throw new IntegrationError('Failed to send email', error);
     }
   }
 
@@ -79,7 +80,7 @@ export class GmailIntegration {
       }
       return emailSummaries;
     } catch (error) {
-      return `Error searching emails: ${error instanceof Error ? error.message : String(error)}`;
+      throw new IntegrationError('Failed to search emails', error);
     }
   }
 
@@ -100,7 +101,7 @@ export class GmailIntegration {
       }
       return emailSummaries;
     } catch (error) {
-      return `Error reading emails: ${error instanceof Error ? error.message : String(error)}`;
+      throw new IntegrationError('Failed to read emails', error);
     }
   }
 
@@ -112,7 +113,7 @@ export class GmailIntegration {
 
       // Get original email details to extract headers for valid reply
       const originalDetails = await this.getMessageDetails(gmail, messageId);
-      
+
       // Gmail requires 'In-Reply-To' and 'References' headers to link emails in a thread
       const replyHeaders = [
         `To: ${originalDetails.from}`,
@@ -128,15 +129,12 @@ export class GmailIntegration {
       // Send reply using the threadId so it stays in the same conversation in Gmail UI
       await gmail.users.messages.send({
         userId: 'me',
-        requestBody: {
-          raw: encodedReply,
-          threadId: originalDetails.threadId
-        }
+        requestBody: { raw: encodedReply, threadId: originalDetails.threadId }
       });
 
       return `Successfully replied to email (Subject: ${originalDetails.subject}).`;
     } catch (error) {
-      return `Error replying to email: ${error instanceof Error ? error.message : String(error)}`;
+      throw new IntegrationError('Failed to reply to email', error);
     }
   }
 }
