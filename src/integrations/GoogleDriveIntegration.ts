@@ -1,8 +1,9 @@
 // src/integrations/GoogleDriveIntegration.ts
 //
-// Read-only Google Drive access (search + read). Reuses the shared refresh-
-// capable OAuth client. Requires the drive.readonly scope — re-run
-// src/auth/googleAuth.ts after the scope was added there.
+// Google Drive access: search + read (drive.readonly) and creating new files
+// (drive.file — least privilege, only touches files this app creates). Reuses
+// the shared refresh-capable OAuth client. Re-run src/auth/googleAuth.ts after
+// a scope change so the new consent is granted.
 
 import { google } from 'googleapis';
 import { getGoogleAuthClient } from '../auth/googleClient';
@@ -50,6 +51,26 @@ export class GoogleDriveIntegration {
       return `File: ${meta.data.name}\n${content.slice(0, 4000)}`;
     } catch (error) {
       throw new IntegrationError('Failed to read Drive file', error);
+    }
+  }
+
+  /**
+   * Create a new Google Doc from plain text and return its id + shareable link.
+   * Uses the drive.file scope, so it can only ever touch app-created files.
+   */
+  async createFile(name: string, content: string): Promise<string> {
+    if (!name || !name.trim()) throw new IntegrationError('A file name is required');
+    try {
+      const drive = this.drive();
+      const res = await drive.files.create({
+        requestBody: { name: name.trim(), mimeType: 'application/vnd.google-apps.document' },
+        media: { mimeType: 'text/plain', body: content || '' },
+        fields: 'id, name, webViewLink',
+      });
+      const f = res.data;
+      return `Created Google Doc "${f.name}" (ID: ${f.id})${f.webViewLink ? ` — ${f.webViewLink}` : ''}`;
+    } catch (error) {
+      throw new IntegrationError('Failed to create Drive file', error);
     }
   }
 }

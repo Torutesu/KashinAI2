@@ -37,7 +37,8 @@ export async function authenticate(): Promise<any> {
       'https://www.googleapis.com/auth/gmail.compose',
       'https://www.googleapis.com/auth/gmail.readonly',
       'https://www.googleapis.com/auth/calendar.events',
-      'https://www.googleapis.com/auth/drive.readonly' // Google Drive read
+      'https://www.googleapis.com/auth/drive.readonly', // Google Drive read
+      'https://www.googleapis.com/auth/drive.file' // Google Drive write (app-created files only)
     ],
   });
 

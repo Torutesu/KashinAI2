@@ -6,6 +6,10 @@ All notable changes to KashinAI2 are documented here. This project follows
 ## [Unreleased]
 
 ### Added
+- **Google Drive write** (`gdrive_create_file`): create a new Google Doc from
+  plain text and get back its shareable link. Uses the least-privileged
+  `drive.file` scope (only ever touches app-created files) and is
+  confirmation-gated. Re-run `src/auth/googleAuth.ts` to grant the new scope.
 - **Proactive failure alerts**: with `NOTIFY_ON_TOOL_FAILURE=true`, a failed tool
   call fires a best-effort notification through the configured `notify` channels.
   Off by default; never blocks the caller and never recurses on the notification

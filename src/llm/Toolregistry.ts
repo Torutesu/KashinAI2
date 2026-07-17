@@ -106,6 +106,7 @@ const TOOL_KEYWORDS: Record<string, string[]> = {
   // gdrive
   gdrive_search_files: ['search drive', 'find in drive', 'google drive file', 'search google drive'],
   gdrive_read_file: ['read drive file', 'open drive file', 'read the google doc'],
+  gdrive_create_file: ['create google doc', 'save to drive', 'new google doc', 'save to google drive', 'make a doc'],
 
   // jira
   jira_search_issues: ['search jira', 'find jira issue', 'jira tickets'],
@@ -516,7 +517,7 @@ export const TOOL_REGISTRY: RegisteredTool[] = [
     def: { name: 'browser_close_tab', description: 'Close the active browser tab.', parameters: { type: 'object', properties: {} } },
   },
 
-  // ---------- google drive (read-only) ----------
+  // ---------- google drive (read + create) ----------
   {
     category: 'gdrive',
     def: {
@@ -531,6 +532,21 @@ export const TOOL_REGISTRY: RegisteredTool[] = [
       name: 'gdrive_read_file',
       description: 'Read the text content of a Google Drive file (Docs exported as text).',
       parameters: { type: 'object', properties: { fileId: { type: 'string', description: 'The Drive file ID' } }, required: ['fileId'] },
+    },
+  },
+  {
+    category: 'gdrive',
+    def: {
+      name: 'gdrive_create_file',
+      description: 'Create a new Google Doc in the user\'s Drive from plain text and return its shareable link.',
+      parameters: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'The document title' },
+          content: { type: 'string', description: 'The plain-text body of the document' },
+        },
+        required: ['name', 'content'],
+      },
     },
   },
 
