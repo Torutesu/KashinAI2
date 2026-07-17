@@ -3,7 +3,7 @@
 All notable changes to KashinAI2 are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.6.0] - 2026-07-17
 
 ### Added
 - **Channel-native notification formatting**: `notify` now accepts an optional
