@@ -659,8 +659,16 @@ export const TOOL_REGISTRY: RegisteredTool[] = [
     category: 'notify',
     def: {
       name: 'notify',
-      description: 'Send a notification to the user across all configured channels (Telegram, Discord). Prefer this over a channel-specific tool unless the user names a channel.',
-      parameters: { type: 'object', properties: { message: { type: 'string', description: 'The message text' } }, required: ['message'] },
+      description: 'Send a notification to the user across all configured channels (Telegram, Discord). Prefer this over a channel-specific tool unless the user names a channel. Each channel formats the title/level in its native style.',
+      parameters: {
+        type: 'object',
+        properties: {
+          message: { type: 'string', description: 'The message body' },
+          title: { type: 'string', description: 'Optional short headline, shown bold above the body' },
+          level: { type: 'string', enum: ['info', 'warn', 'error'], description: 'Optional severity; adds an icon' },
+        },
+        required: ['message'],
+      },
     },
   },
   {
