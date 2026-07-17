@@ -14,6 +14,7 @@ import { requireApiToken, corsOriginCheck } from './middleware/auth';
 import { createRateLimiter } from './middleware/rateLimit';
 import { PrismaConversationStore } from './memory/PrismaConversationStore';
 import { setVSCodeLiveState } from './integrations/vscodeLiveState';
+import { metricsHandler, createReadyHandler } from './routes/ops';
 
 const app = express();
 app.use(cors({ origin: corsOriginCheck }));
@@ -56,6 +57,10 @@ const validateBody = (req: Request, res: Response, next: NextFunction) => {
 app.get('/health', (req: Request, res: Response) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+// Operational endpoints (unauthenticated, read-only).
+app.get('/ready', createReadyHandler(() => memoryService.isReady()));
+app.get('/metrics', metricsHandler);
 
 // --- Context APIs ---
 app.get('/context/current', async (req: Request, res: Response) => {

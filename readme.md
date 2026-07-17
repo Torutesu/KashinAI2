@@ -141,6 +141,8 @@ when `API_TOKEN` is set. Pass an optional `x-session-id` header on `/chat` and
 
 ```
 GET  /health
+GET  /ready                    # readiness probe (503 until vector DB ready)
+GET  /metrics                  # Prometheus counters
 GET  /context/current
 GET  /context/recent?limit=10
 GET  /memory/search?query=<q>
@@ -177,6 +179,16 @@ chrome.storage.local.set({ kashinaiToken: '<your API_TOKEN>' });
 Trigger it on any page with `Ctrl+Shift+Space` (`Cmd+Shift+Space` on macOS).
 
 ---
+
+## Docker
+
+```bash
+docker build -t kashinai2 .
+docker run -p 3001:3001 --env-file .env kashinai2
+```
+
+The image runs the API server. Desktop collectors that need OS tools
+(`tesseract`, `xdotool`, …) degrade gracefully with a startup warning.
 
 ## Testing
 

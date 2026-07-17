@@ -40,8 +40,10 @@ confirmation gate on destructive actions.
   can't find them. → Decide policy and embed (with noise filtering).
 - **Google `web` credential flow.** Refresh client supports the shape but the
   interactive `googleAuth.ts` only handles `installed`. → Unify.
-- **Browser history scope.** Only Chrome's Default profile; hard `sqlite3` CLI
-  dependency. → Support profiles/other browsers; read via a lib.
+- ~~**Browser history scope.** Only Chrome's Default profile.~~ **Done** — now
+  scans Chrome/Chromium/Edge/Brave across all profiles (Default, Profile N),
+  deduped per DB (`src/collectors/browserPaths.ts`). Still uses the `sqlite3`
+  CLI (reading via a lib remains a future cleanup).
 - **Wayland active-window** relies on GNOME `Eval` (disabled by default). →
   Use a portal or per-DE strategy.
 
@@ -54,12 +56,17 @@ confirmation gate on destructive actions.
   (`src/middleware/rateLimit.ts`, `RATE_LIMIT_*` env).
 - ~~**Config validation** (fail fast on missing/invalid env).~~ **Done** —
   `src/config.ts` (`assertValidConfig` at startup).
-- **Dockerfile + compose** for reproducible deploys.
-- **Graceful shutdown flush** of pending writes; **/ready** probe.
+- ~~**Dockerfile** for reproducible deploys.~~ **Done** — multi-stage
+  `Dockerfile` + `.dockerignore`.
+- ~~**/ready** probe~~ **Done** (readiness gated on the vector store).
+- ~~**Graceful shutdown flush** of pending writes.~~ **Done** — SIGINT/SIGTERM
+  stop collectors, close the HTTP server, and `prisma.$disconnect()` (with a
+  10s force-exit backstop).
 - ~~**Structured logging** with levels, replacing console.*.~~ **Done (core)** —
   leveled logger (`LOG_LEVEL`/`LOG_FORMAT`, `src/utils/logger.ts`), adopted at
   the entry points; remaining console.* can migrate incrementally.
-- **Metrics** (basic counters: events collected, tool calls, errors).
+- ~~**Metrics** (basic counters: events collected, tool calls, errors).~~
+  **Done** — `src/utils/metrics.ts` + `GET /metrics` (Prometheus text).
 
 ### Testing
 - ~~Integration unit tests with **mocked HTTP** (Slack/GitHub/Notion/Gmail).~~
@@ -99,8 +106,9 @@ confirmation gate on destructive actions.
 8. ~~**VS Code companion extension** (unlocks cursor/selection features).~~
    **Done** — see `kashinai-vscode/`.
 9. ~~**Pluggable LLM provider** behind the `LLMProvider` interface.~~
-   **Done** — `LLM_PROVIDER=gemini|openai` via `providerFactory`; OpenAI
-   provider added (`OpenAIProvider`). Local-model provider can slot in the same way.
+   **Done** — `LLM_PROVIDER=gemini|openai` via `providerFactory`; the OpenAI
+   provider also honors `OPENAI_BASE_URL`, so a **local LLM** (Ollama / LM Studio
+   / vLLM) works through the same path.
 10. **More integrations** (Jira/Linear, Telegram/Discord) and **per-app privacy
     rules** (exclude sensitive apps from capture).
 11. **Web dashboard** to browse memory, review actions, and manage privacy.

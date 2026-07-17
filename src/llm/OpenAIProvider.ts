@@ -11,15 +11,24 @@ import { LLMProvider, LLMResponse, LLMHistoryMessage, ToolDefinition, ToolCall }
 export class OpenAIProvider implements LLMProvider {
   private client: OpenAI | null = null;
   private readonly model: string;
+  private readonly baseURL?: string;
 
   constructor(private apiKey: string) {
     this.model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+    // OPENAI_BASE_URL points at any OpenAI-compatible server (Ollama, LM Studio,
+    // vLLM, …), enabling a fully local LLM behind the same provider.
+    this.baseURL = process.env.OPENAI_BASE_URL || undefined;
   }
 
   // Lazy so constructing the provider (e.g. in the factory/tests) never throws
   // on a missing key — only an actual request does.
   private getClient(): OpenAI {
-    if (!this.client) this.client = new OpenAI({ apiKey: this.apiKey });
+    if (!this.client) {
+      this.client = new OpenAI({
+        apiKey: this.apiKey || 'not-needed', // local servers often ignore the key
+        ...(this.baseURL ? { baseURL: this.baseURL } : {}),
+      });
+    }
     return this.client;
   }
 
