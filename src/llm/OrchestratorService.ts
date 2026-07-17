@@ -31,6 +31,8 @@ const DESTRUCTIVE_TOOLS = new Set([
   'jira_comment_issue',
   'linear_create_issue',
   'gdrive_create_file',
+  'gdrive_update_file',
+  'gdrive_append_file',
   'notify',
   'send_telegram_message',
   'send_discord_message',

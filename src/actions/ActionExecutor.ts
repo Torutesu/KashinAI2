@@ -185,6 +185,8 @@ export class ActionExecutor {
         case 'gdrive_search_files': return await this.gdrive.searchFiles(String(args.query));
         case 'gdrive_read_file': return await this.gdrive.readFile(String(args.fileId));
         case 'gdrive_create_file': return await this.gdrive.createFile(String(args.name), String(args.content ?? ''));
+        case 'gdrive_update_file': return await this.gdrive.updateFile(String(args.fileId), String(args.content ?? ''));
+        case 'gdrive_append_file': return await this.gdrive.appendFile(String(args.fileId), String(args.content ?? ''));
 
         // Jira
         case 'jira_search_issues': return await this.jira.searchIssues(String(args.query));

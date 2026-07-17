@@ -6,6 +6,11 @@ All notable changes to KashinAI2 are documented here. This project follows
 ## [Unreleased]
 
 ### Added
+- **Google Drive update & append** (`gdrive_update_file`, `gdrive_append_file`):
+  replace the full contents of, or append plain text to, an existing Google Doc
+  this app created. Both are confirmation-gated and use the same least-privileged
+  `drive.file` scope as create. (Append reads the current text and re-writes;
+  formatting is not preserved.)
 - **Integration status endpoint** (`GET /integrations/status`, token-gated): reports
   which integrations are configured (Slack, GitHub, Google, Notion, Jira, Linear,
   Telegram, Discord) as booleans plus the names of the settings each needs — never
