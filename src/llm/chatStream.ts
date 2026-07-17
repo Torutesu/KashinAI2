@@ -6,6 +6,7 @@
 // tested with a fake orchestrator.
 
 import { Request, Response } from 'express';
+import { resolveSessionId } from '../utils/sessionScope';
 
 export interface StreamableOrchestrator {
   processPrompt(
@@ -26,11 +27,7 @@ export function createChatStreamHandler(orchestrator: StreamableOrchestrator) {
       res.status(400).json({ error: 'Prompt is too long (max 5000 characters)' });
       return;
     }
-    const sessionId = (
-      req.get('x-session-id') ||
-      (typeof req.body.sessionId === 'string' ? req.body.sessionId : '') ||
-      'default'
-    ).slice(0, 128);
+    const sessionId = resolveSessionId(req);
 
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
