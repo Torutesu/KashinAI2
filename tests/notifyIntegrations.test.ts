@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import axios from 'axios';
 import { TelegramIntegration } from '../src/integrations/TelegramIntegration';
 import { DiscordIntegration } from '../src/integrations/DiscordIntegration';
+import { ActionExecutor } from '../src/actions/ActionExecutor';
 import { getToolDefByName } from '../src/llm/Toolregistry';
 
 function setEnv(t: any, key: string, value: string | undefined) {
@@ -14,8 +15,32 @@ function setEnv(t: any, key: string, value: string | undefined) {
 }
 
 test('notification tools are registered', () => {
+  assert.ok(getToolDefByName('notify'));
   assert.ok(getToolDefByName('send_telegram_message'));
   assert.ok(getToolDefByName('send_discord_message'));
+});
+
+test('isConfigured reflects the presence of credentials', (t) => {
+  setEnv(t, 'TELEGRAM_BOT_TOKEN', undefined);
+  setEnv(t, 'TELEGRAM_CHAT_ID', undefined);
+  setEnv(t, 'DISCORD_WEBHOOK_URL', undefined);
+  assert.equal(new TelegramIntegration().isConfigured(), false);
+  assert.equal(new DiscordIntegration().isConfigured(), false);
+
+  setEnv(t, 'TELEGRAM_BOT_TOKEN', 'bot');
+  setEnv(t, 'TELEGRAM_CHAT_ID', '1');
+  setEnv(t, 'DISCORD_WEBHOOK_URL', 'https://discord.test/webhook');
+  assert.equal(new TelegramIntegration().isConfigured(), true);
+  assert.equal(new DiscordIntegration().isConfigured(), true);
+});
+
+test('notify tool dispatches and reports no configured channels', async (t) => {
+  setEnv(t, 'TELEGRAM_BOT_TOKEN', undefined);
+  setEnv(t, 'TELEGRAM_CHAT_ID', undefined);
+  setEnv(t, 'DISCORD_WEBHOOK_URL', undefined);
+  const res = await new ActionExecutor().execute('notify', { message: 'ping' });
+  assert.equal(res.ok, false);
+  assert.match(res.message, /no configured channels/);
 });
 
 test('Telegram throws when unconfigured', async (t) => {

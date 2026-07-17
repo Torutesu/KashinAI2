@@ -12,6 +12,7 @@ const NEW_TOOLS = [
   'gdrive_search_files', 'gdrive_read_file',
   'jira_search_issues', 'jira_read_issue', 'jira_create_issue', 'jira_comment_issue',
   'linear_search_issues', 'linear_create_issue',
+  'notify', 'send_telegram_message', 'send_discord_message',
 ];
 
 test('all new integration tools are registered', () => {
