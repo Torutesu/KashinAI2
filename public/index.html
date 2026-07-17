@@ -49,6 +49,18 @@
     padding: 8px 16px; cursor: pointer; font-weight: 600; }
   .muted { color: var(--muted); }
   .overflow { overflow-x: auto; }
+  .tokenInput { margin-left: auto; background: var(--bg); border: 1px solid var(--border);
+    color: var(--text); border-radius: 8px; padding: 6px 10px; font-size: 12px; width: 220px; outline: none; }
+  .row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+  .row input { flex: 1; min-width: 180px; background: var(--bg); border: 1px solid var(--border);
+    color: var(--text); border-radius: 8px; padding: 8px 10px; outline: none; }
+  button.act { background: var(--accent); color: #fff; border: none; border-radius: 8px;
+    padding: 7px 14px; cursor: pointer; font-weight: 600; font-size: 13px; }
+  button.danger { background: transparent; color: var(--bad); border: 1px solid var(--bad);
+    border-radius: 8px; padding: 5px 10px; cursor: pointer; font-size: 12px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .note { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .ok-text { color: var(--ok); font-size: 12px; }
   @media (max-width: 720px) { main { grid-template-columns: 1fr; } }
 </style>
 </head>
@@ -56,6 +68,7 @@
 <header>
   <h1>KashinAI2</h1>
   <span class="ver" id="version">—</span>
+  <input id="token" class="tokenInput" type="password" placeholder="API token (for management)" />
   <span class="pill" id="ready">checking…</span>
 </header>
 <main>
@@ -73,10 +86,32 @@
     <div class="overflow"><table id="searchResults"><tbody></tbody></table></div>
   </section>
 
+  <section class="panel">
+    <h2>Privacy — pause capture for apps</h2>
+    <div class="row">
+      <input id="privacy" placeholder="e.g. 1Password,Bitwarden,Keychain" />
+      <button class="act" id="savePrivacy">Save</button>
+    </div>
+    <div class="note" id="privacyNote">Comma-separated app names. Requires token.</div>
+  </section>
+
+  <section class="panel">
+    <h2>Memory — clear a source</h2>
+    <div class="chips" id="clearChips"></div>
+    <div class="note" id="clearNote">Deletes SQLite rows + vectors for that source. Requires token.</div>
+  </section>
+
   <section class="panel wide">
     <h2>Recent activity</h2>
     <div class="overflow">
       <table id="recent"><thead><tr><th>Source</th><th>Detail</th></tr></thead><tbody></tbody></table>
+    </div>
+  </section>
+
+  <section class="panel wide">
+    <h2>Action history</h2>
+    <div class="overflow">
+      <table id="actions"><thead><tr><th>When</th><th>Tool</th><th>Result</th><th>Device</th></tr></thead><tbody></tbody></table>
     </div>
   </section>
 </main>
@@ -84,6 +119,24 @@
 <script>
   const $ = (id) => document.getElementById(id);
   async function j(url, opts) { const r = await fetch(url, opts); return r.ok ? r.json() : null; }
+
+  // --- token (stored locally, sent on management calls) ---
+  const tokenEl = $('token');
+  tokenEl.value = localStorage.getItem('kashinaiToken') || '';
+  tokenEl.addEventListener('change', () => {
+    localStorage.setItem('kashinaiToken', tokenEl.value.trim());
+    refreshManagement();
+  });
+  function authHeaders(extra) {
+    const t = (tokenEl.value || '').trim();
+    return Object.assign({}, extra || {}, t ? { 'x-api-token': t } : {});
+  }
+  async function authJson(url, opts) {
+    const o = opts || {};
+    o.headers = authHeaders(o.headers);
+    const r = await fetch(url, o);
+    return r.ok ? r.json() : null;
+  }
 
   async function refreshStatus() {
     try {
@@ -143,7 +196,55 @@
   $('go').addEventListener('click', search);
   $('q').addEventListener('keydown', (e) => { if (e.key === 'Enter') search(); });
 
-  function tick() { refreshStatus(); refreshMetrics(); refreshRecent(); }
+  // --- management (token-gated) ---
+  const SOURCES = ['CLIPBOARD','BROWSER','SELECTED_TEXT','SLACK','CALENDAR','APP_ACTIVITY','VSCODE','OCR'];
+
+  async function refreshPrivacy() {
+    const p = await authJson('/settings/privacy');
+    if (p) $('privacy').value = p.captureExcludeApps || '';
+  }
+  $('savePrivacy').addEventListener('click', async () => {
+    const res = await authJson('/settings/privacy', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ captureExcludeApps: $('privacy').value.trim() }),
+    });
+    $('privacyNote').innerHTML = res ? '<span class="ok-text">Saved.</span>' : 'Save failed (check token).';
+  });
+
+  function renderClearChips() {
+    $('clearChips').innerHTML = SOURCES.map((s) => `<button class="danger" data-src="${s}">Clear ${s}</button>`).join('');
+    document.querySelectorAll('#clearChips button').forEach((b) => b.addEventListener('click', async () => {
+      const src = b.getAttribute('data-src');
+      if (!confirm(`Delete all ${src} memory?`)) return;
+      const res = await authJson('/memory/clear', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source: src }),
+      });
+      $('clearNote').innerHTML = res
+        ? `<span class="ok-text">Cleared ${src}: ${res.deleted} rows, ${res.vectorsDeleted} vectors.</span>`
+        : 'Clear failed (check token).';
+      refreshRecent();
+    }));
+  }
+
+  async function refreshActions() {
+    const data = await authJson('/actions/history');
+    const tb = $('actions').querySelector('tbody');
+    if (!data) { tb.innerHTML = '<tr><td colspan="4" class="muted">Enter a token to view.</td></tr>'; return; }
+    const rows = (data.actions || []);
+    tb.innerHTML = rows.length
+      ? rows.map((a) => `<tr><td>${new Date(a.at).toLocaleTimeString()}</td><td class="type">${esc(a.tool)}</td>`
+          + `<td>${a.ok ? 'ok' : '<span style="color:var(--bad)">failed</span>'}</td><td>${esc(a.device || '')}</td></tr>`).join('')
+      : '<tr><td colspan="4" class="muted">No actions yet.</td></tr>';
+  }
+
+  function refreshManagement() { refreshPrivacy(); refreshActions(); }
+
+  renderClearChips();
+
+  function tick() { refreshStatus(); refreshMetrics(); refreshRecent(); refreshManagement(); }
   tick();
   setInterval(tick, 10000);
 </script>

@@ -6,6 +6,7 @@ import {
   setCurrentApp,
   getCurrentApp,
   isCurrentAppExcluded,
+  setExcludeApps,
 } from '../src/collectors/activeAppState';
 
 test('isCaptureExcluded matches case-insensitive substrings', () => {
@@ -20,10 +21,9 @@ test('empty inputs exclude nothing', () => {
   assert.equal(isCaptureExcluded('anything', '  ,  '), false);
 });
 
-test('isCurrentAppExcluded reflects the focused app + env', () => {
-  const orig = process.env.CAPTURE_EXCLUDE_APPS;
-  process.env.CAPTURE_EXCLUDE_APPS = 'Bitwarden';
+test('isCurrentAppExcluded reflects the focused app + live list', () => {
   try {
+    setExcludeApps('Bitwarden');
     setCurrentApp('Bitwarden Desktop');
     assert.equal(getCurrentApp(), 'Bitwarden Desktop');
     assert.equal(isCurrentAppExcluded(), true);
@@ -31,8 +31,21 @@ test('isCurrentAppExcluded reflects the focused app + env', () => {
     setCurrentApp('VSCode');
     assert.equal(isCurrentAppExcluded(), false);
   } finally {
-    if (orig === undefined) delete process.env.CAPTURE_EXCLUDE_APPS;
-    else process.env.CAPTURE_EXCLUDE_APPS = orig;
+    setExcludeApps('');
     setCurrentApp('');
   }
+});
+
+test('setExcludeApps updates the live exclusion list', async () => {
+  const { setExcludeApps, setCurrentApp: setApp, isCurrentAppExcluded: excluded } =
+    await import('../src/collectors/activeAppState');
+  setExcludeApps('Bitwarden,1Password');
+  setApp('1Password 8');
+  assert.equal(excluded(), true);
+  setApp('VSCode');
+  assert.equal(excluded(), false);
+  setExcludeApps(''); // reset
+  setApp('1Password 8');
+  assert.equal(excluded(), false);
+  setApp('');
 });

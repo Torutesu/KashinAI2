@@ -7,6 +7,7 @@ import { MemoryService } from '../memory/MemoryService';
 import { selectRelevantToolsSemantic } from './Toolregistry';
 import { ConversationStore, InMemoryConversationStore } from '../memory/ConversationStore';
 import { increment } from '../utils/metrics';
+import { recordAction } from '../utils/actionLog';
 
 // Actions that mutate external state / send irreversible things — require explicit confirm
 const DESTRUCTIVE_TOOLS = new Set([
@@ -157,6 +158,7 @@ export class OrchestratorService {
       const result = await this.actionExecutor.execute(call.name, call.args);
       increment('tool_calls_total');
       if (!result.ok) increment('tool_failures_total');
+      recordAction({ tool: call.name, ok: result.ok }, Date.now());
       // Mark failures explicitly so the model can recover on the next step
       // instead of assuming the action succeeded.
       const prefix = result.ok ? '' : '[FAILED] ';

@@ -13,6 +13,11 @@ stages.
   alongside `API_TOKEN`; any configured token authenticates, requests are tagged
   with the device label, and `GET /devices` lists device labels (never secrets).
   Revoke a device by removing its pair and restarting.
+- **Dashboard management** (token-gated writes): edit the privacy exclude list
+  (`PUT /settings/privacy`, persisted in a new `Setting` table, live effect),
+  view recent action history (`GET /actions/history`), and clear a memory source
+  (`POST /memory/clear`, SQLite rows + vectors). Dashboard gains a token field
+  and management panels.
 
 ## [1.1.0] - 2026-07-17
 

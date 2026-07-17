@@ -82,6 +82,26 @@ export class MemoryService {
     return this.vectorService.connected;
   }
 
+  /** Delete all stored data for one source (SQLite rows + memory vectors). */
+  async clearSource(source: string): Promise<{ deleted: number; vectorsDeleted: number }> {
+    const map: Record<string, { del: () => Promise<{ count: number }>; vec: string }> = {
+      CLIPBOARD: { del: () => prisma.clipboardHistory.deleteMany({}), vec: 'CLIPBOARD' },
+      BROWSER: { del: () => prisma.browserHistory.deleteMany({}), vec: 'BROWSER' },
+      SELECTED_TEXT: { del: () => prisma.selectedText.deleteMany({}), vec: 'SELECTED_TEXT' },
+      SLACK: { del: () => prisma.slackMessage.deleteMany({}), vec: 'SLACK' },
+      CALENDAR: { del: () => prisma.calendarEvent.deleteMany({}), vec: 'CALENDAR' },
+      APP_ACTIVITY: { del: () => prisma.appActivity.deleteMany({}), vec: 'APP_ACTIVITY' },
+      VSCODE: { del: () => prisma.vSCodeActivity.deleteMany({}), vec: 'VSCODE' },
+      OCR: { del: () => prisma.screenOCR.deleteMany({}), vec: 'OCR' },
+    };
+    const entry = map[source];
+    if (!entry) throw new Error(`Unknown source: ${source}`);
+    const result = await entry.del();
+    const vectorsDeleted = await this.vectorService.deleteByType(entry.vec);
+    this.lastEmbedded.delete(entry.vec);
+    return { deleted: result.count, vectorsDeleted };
+  }
+
   async getRecentContext(limit: number = 3) {
     try {
       const [apps, clips, browser, selected, slack, calendar, vscode, ocr] = await Promise.all([
