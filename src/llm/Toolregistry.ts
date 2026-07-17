@@ -118,6 +118,7 @@ const TOOL_KEYWORDS: Record<string, string[]> = {
   linear_create_issue: ['create linear issue', 'new linear ticket'],
 
   // notify
+  notify: ['notify me', 'send me a notification', 'ping me', 'alert me', 'let me know'],
   send_telegram_message: ['send telegram', 'telegram me', 'notify on telegram'],
   send_discord_message: ['send discord', 'discord me', 'notify on discord', 'post to discord'],
 };
@@ -606,6 +607,14 @@ export const TOOL_REGISTRY: RegisteredTool[] = [
   },
 
   // ---------- notifications ----------
+  {
+    category: 'notify',
+    def: {
+      name: 'notify',
+      description: 'Send a notification to the user across all configured channels (Telegram, Discord). Prefer this over a channel-specific tool unless the user names a channel.',
+      parameters: { type: 'object', properties: { message: { type: 'string', description: 'The message text' } }, required: ['message'] },
+    },
+  },
   {
     category: 'notify',
     def: {

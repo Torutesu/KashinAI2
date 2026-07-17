@@ -3,6 +3,18 @@
 All notable changes to KashinAI2 are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- **Unified `notify` tool**: sends one message to every configured notification
+  channel (Telegram, Discord) in a single call, so the assistant no longer has to
+  pick a channel. Scope it with `NOTIFY_CHANNELS` (comma-separated names; blank =
+  all configured). Confirmation-gated; succeeds if any channel accepts and reports
+  partial failures. The channel-specific tools remain available.
+- **Dashboard metrics graph**: a live SVG time-series chart of key counters
+  (events stored, tool calls, tool failures) sampled every 30s, backed by a new
+  `GET /metrics/history` endpoint (gated by `REQUIRE_AUTH_ALL` like `/metrics`).
+
 ## [1.3.0] - 2026-07-17
 
 ### Added

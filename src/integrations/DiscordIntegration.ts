@@ -7,7 +7,13 @@ import axios from 'axios';
 import { IntegrationError } from '../types/result';
 
 export class DiscordIntegration {
+  readonly name = 'discord';
   private webhookUrl = process.env.DISCORD_WEBHOOK_URL || '';
+
+  /** True when the incoming webhook URL is present. */
+  isConfigured(): boolean {
+    return !!this.webhookUrl;
+  }
 
   async sendMessage(message: string): Promise<string> {
     if (!this.webhookUrl) {
