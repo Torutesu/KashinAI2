@@ -14,6 +14,7 @@ import { WhisperService } from './voice/WhisperService'; // ⬅️ NEW
 import { checkExternalBinaries } from './utils/binaryCheck';
 import { assertValidConfig } from './config';
 import { log } from './utils/logger';
+import { prisma } from './db/prisma';
 
 // Validate configuration before anything else (throws on hard errors).
 assertValidConfig();
@@ -52,7 +53,7 @@ if (RETENTION_DAYS > 0) {
   pruneTimer = setInterval(runPrune, 6 * 60 * 60 * 1000);
 }
 
-app.listen(PORT, () => {
+const httpServer = app.listen(PORT, () => {
   log.info(`AI Context Engine running on http://localhost:${PORT}`);
 });
 
@@ -60,11 +61,36 @@ WhisperService.preload().catch((err) => {
   log.warn('[Server] Whisper model preload failed, will retry on first /voice/query request:', err?.message || err);
 });
 
-process.on('SIGINT', () => {
-  log.info('Shutting down collectors...');
+let shuttingDown = false;
+async function shutdown(signal: string) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  log.info(`Received ${signal}, shutting down gracefully...`);
+
+  // Stop producing new work.
   collectors.forEach(c => c.stop());
   if (pruneTimer) clearInterval(pruneTimer);
+
+  // Stop accepting new connections, then flush the DB connection.
+  await new Promise<void>((resolve) => httpServer.close(() => resolve()));
+  try {
+    await prisma.$disconnect();
+  } catch (err) {
+    log.error('Error disconnecting Prisma:', err);
+  }
+
+  log.info('Shutdown complete.');
   process.exit(0);
+}
+
+// Force-exit backstop if graceful shutdown hangs (e.g. a stuck connection).
+process.on('SIGINT', () => {
+  void shutdown('SIGINT');
+  setTimeout(() => process.exit(1), 10000).unref();
+});
+process.on('SIGTERM', () => {
+  void shutdown('SIGTERM');
+  setTimeout(() => process.exit(1), 10000).unref();
 });
 
 process.on('unhandledRejection', (err) => {

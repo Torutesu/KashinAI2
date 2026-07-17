@@ -57,7 +57,9 @@ confirmation gate on destructive actions.
 - ~~**Dockerfile** for reproducible deploys.~~ **Done** — multi-stage
   `Dockerfile` + `.dockerignore`.
 - ~~**/ready** probe~~ **Done** (readiness gated on the vector store).
-  **Graceful shutdown flush** of pending writes still pending.
+- ~~**Graceful shutdown flush** of pending writes.~~ **Done** — SIGINT/SIGTERM
+  stop collectors, close the HTTP server, and `prisma.$disconnect()` (with a
+  10s force-exit backstop).
 - ~~**Structured logging** with levels, replacing console.*.~~ **Done (core)** —
   leveled logger (`LOG_LEVEL`/`LOG_FORMAT`, `src/utils/logger.ts`), adopted at
   the entry points; remaining console.* can migrate incrementally.
@@ -102,8 +104,9 @@ confirmation gate on destructive actions.
 8. ~~**VS Code companion extension** (unlocks cursor/selection features).~~
    **Done** — see `kashinai-vscode/`.
 9. ~~**Pluggable LLM provider** behind the `LLMProvider` interface.~~
-   **Done** — `LLM_PROVIDER=gemini|openai` via `providerFactory`; OpenAI
-   provider added (`OpenAIProvider`). Local-model provider can slot in the same way.
+   **Done** — `LLM_PROVIDER=gemini|openai` via `providerFactory`; the OpenAI
+   provider also honors `OPENAI_BASE_URL`, so a **local LLM** (Ollama / LM Studio
+   / vLLM) works through the same path.
 10. **More integrations** (Jira/Linear, Telegram/Discord) and **per-app privacy
     rules** (exclude sensitive apps from capture).
 11. **Web dashboard** to browse memory, review actions, and manage privacy.
