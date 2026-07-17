@@ -27,6 +27,9 @@ const DESTRUCTIVE_TOOLS = new Set([
   'calendar_update_time',
   'calendar_delete_event',
   'create_directory',
+  'jira_create_issue',
+  'jira_comment_issue',
+  'linear_create_issue',
 ]);
 
 const AFFIRM = new Set(['yes', 'y', 'confirm', 'haan', 'ha', 'go ahead', 'do it']);

@@ -10,7 +10,10 @@ export type ToolCategory =
   | 'notion'
   | 'slack'
   | 'browser'
-  | 'system';  
+  | 'gdrive'
+  | 'jira'
+  | 'linear'
+  | 'system';
 
 interface RegisteredTool {
   category: ToolCategory;
@@ -25,6 +28,9 @@ const CATEGORY_KEYWORDS: Record<ToolCategory, string[]> = {
   notion: ['notion', 'database', 'notion page'],
   slack: ['slack', 'channel', 'thread', 'dm ', 'workspace message'],
   browser: ['browser', 'website', 'webpage', 'web page', 'navigate', 'click', 'fill', 'tab', 'automate', 'scrape'],
+  gdrive: ['google drive', 'gdrive', 'drive file', 'my drive', 'google doc', 'spreadsheet'],
+  jira: ['jira', 'jira issue', 'jira ticket', 'sprint', 'epic'],
+  linear: ['linear', 'linear issue', 'linear ticket'],
   system: ['folder', 'directory', 'mkdir', 'open url', 'open link'],
 };
 
@@ -94,6 +100,20 @@ const TOOL_KEYWORDS: Record<string, string[]> = {
   browser_get_current_tab: ['current tab', 'which tab', 'active tab'],
   browser_open_new_tab: ['open new tab', 'new tab'],
   browser_close_tab: ['close tab', 'close this tab'],
+
+  // gdrive
+  gdrive_search_files: ['search drive', 'find in drive', 'google drive file', 'search google drive'],
+  gdrive_read_file: ['read drive file', 'open drive file', 'read the google doc'],
+
+  // jira
+  jira_search_issues: ['search jira', 'find jira issue', 'jira tickets'],
+  jira_read_issue: ['read jira issue', 'show jira issue', 'jira issue details'],
+  jira_create_issue: ['create jira issue', 'new jira ticket', 'file a jira issue'],
+  jira_comment_issue: ['comment on jira', 'add jira comment'],
+
+  // linear
+  linear_search_issues: ['search linear', 'find linear issue', 'linear tickets'],
+  linear_create_issue: ['create linear issue', 'new linear ticket'],
 };
 
 const MULTI_INTENT_SIGNALS = [' and then ', ' then ', ' also ', ' aur ', ' phir ', 'uske baad', 'as well as'];
@@ -487,6 +507,96 @@ export const TOOL_REGISTRY: RegisteredTool[] = [
   {
     category: 'browser',
     def: { name: 'browser_close_tab', description: 'Close the active browser tab.', parameters: { type: 'object', properties: {} } },
+  },
+
+  // ---------- google drive (read-only) ----------
+  {
+    category: 'gdrive',
+    def: {
+      name: 'gdrive_search_files',
+      description: "Search the user's Google Drive by file name.",
+      parameters: { type: 'object', properties: { query: { type: 'string', description: 'Text to match in file names' } }, required: ['query'] },
+    },
+  },
+  {
+    category: 'gdrive',
+    def: {
+      name: 'gdrive_read_file',
+      description: 'Read the text content of a Google Drive file (Docs exported as text).',
+      parameters: { type: 'object', properties: { fileId: { type: 'string', description: 'The Drive file ID' } }, required: ['fileId'] },
+    },
+  },
+
+  // ---------- jira ----------
+  {
+    category: 'jira',
+    def: {
+      name: 'jira_search_issues',
+      description: 'Search Jira issues by text or JQL.',
+      parameters: { type: 'object', properties: { query: { type: 'string', description: 'Free text or a JQL query' } }, required: ['query'] },
+    },
+  },
+  {
+    category: 'jira',
+    def: {
+      name: 'jira_read_issue',
+      description: 'Read a Jira issue by key (e.g. ABC-123).',
+      parameters: { type: 'object', properties: { issueKey: { type: 'string', description: 'Issue key, e.g. ABC-123' } }, required: ['issueKey'] },
+    },
+  },
+  {
+    category: 'jira',
+    def: {
+      name: 'jira_create_issue',
+      description: 'Create a Jira issue (Task) in a project.',
+      parameters: {
+        type: 'object',
+        properties: {
+          projectKey: { type: 'string', description: 'Project key, e.g. ABC' },
+          summary: { type: 'string', description: 'Issue summary/title' },
+          description: { type: 'string', description: 'Issue description' },
+        },
+        required: ['projectKey', 'summary'],
+      },
+    },
+  },
+  {
+    category: 'jira',
+    def: {
+      name: 'jira_comment_issue',
+      description: 'Add a comment to a Jira issue.',
+      parameters: {
+        type: 'object',
+        properties: { issueKey: { type: 'string', description: 'Issue key, e.g. ABC-123' }, comment: { type: 'string', description: 'Comment text' } },
+        required: ['issueKey', 'comment'],
+      },
+    },
+  },
+
+  // ---------- linear ----------
+  {
+    category: 'linear',
+    def: {
+      name: 'linear_search_issues',
+      description: 'Search Linear issues by title.',
+      parameters: { type: 'object', properties: { query: { type: 'string', description: 'Text to match in issue titles' } }, required: ['query'] },
+    },
+  },
+  {
+    category: 'linear',
+    def: {
+      name: 'linear_create_issue',
+      description: 'Create a Linear issue in a team.',
+      parameters: {
+        type: 'object',
+        properties: {
+          teamId: { type: 'string', description: 'Linear team ID' },
+          title: { type: 'string', description: 'Issue title' },
+          description: { type: 'string', description: 'Issue description' },
+        },
+        required: ['teamId', 'title'],
+      },
+    },
   },
 ];
 

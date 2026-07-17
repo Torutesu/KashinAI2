@@ -18,6 +18,11 @@ stages.
   view recent action history (`GET /actions/history`), and clear a memory source
   (`POST /memory/clear`, SQLite rows + vectors). Dashboard gains a token field
   and management panels.
+- **Integrations**: Google Drive (read: `gdrive_search_files`,
+  `gdrive_read_file` — uses the Google OAuth `drive.readonly` scope), Jira
+  (`jira_search_issues`/`read`/`create`/`comment`), and Linear
+  (`linear_search_issues`/`create`). Create/comment go through the confirmation
+  gate. New env: `JIRA_BASE_URL`/`JIRA_EMAIL`/`JIRA_API_TOKEN`, `LINEAR_API_KEY`.
 
 ## [1.1.0] - 2026-07-17
 
