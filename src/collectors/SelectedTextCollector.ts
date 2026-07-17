@@ -3,6 +3,7 @@ import { promisify } from 'util';
 import { MemoryService } from '../memory/MemoryService';
 import { Collector } from '../types';
 import { warnThrottled } from '../utils/logger';
+import { isCurrentAppExcluded } from './activeAppState';
 
 const execAsync = promisify(exec);
 
@@ -22,6 +23,7 @@ export class SelectedTextCollector implements Collector {
         const selectedText = await this.captureSelection();
         if (selectedText && selectedText !== this.lastText && selectedText.length > 2) {
           this.lastText = selectedText;
+          if (isCurrentAppExcluded()) return; // sensitive app focused — skip capture
           await this.memoryService.storeEvent({
             type: 'SELECTED_TEXT',
             content: selectedText,

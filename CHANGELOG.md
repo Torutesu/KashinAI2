@@ -10,6 +10,9 @@ All notable changes to KashinAI2 are documented here. This project follows
   live readiness, metrics counters, recent activity timeline, and semantic
   memory search. Self-contained (no build step, theme-aware).
 - **`GET /version`** endpoint (`{ name, version }`), used by the dashboard header.
+- **Per-app privacy exclusion** (`CAPTURE_EXCLUDE_APPS`): while a listed app
+  (e.g. a password manager) is focused, collectors pause capture (clipboard,
+  screen OCR, selected text, app activity).
 
 ## [1.0.0] - 2026-07-17
 

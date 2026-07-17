@@ -6,6 +6,7 @@ import os from 'os';
 import { MemoryService } from '../memory/MemoryService';
 import { Collector } from '../types';
 import { warnThrottled } from '../utils/logger';
+import { isCurrentAppExcluded } from './activeAppState';
 
 const execAsync = promisify(exec);
 
@@ -45,7 +46,7 @@ export class ScreenOCRCollector implements Collector {
         const { stdout } = await execAsync(`tesseract "${tempImg}" stdout`);
         text = stdout.trim();
 
-        if (text) {
+        if (text && !isCurrentAppExcluded()) { // skip while a sensitive app is focused
           await this.memoryService.storeEvent({
             type: 'SCREEN_OCR',
             content: text.substring(0, 1000), // Limit size

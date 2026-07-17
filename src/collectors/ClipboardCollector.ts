@@ -2,6 +2,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import { MemoryService } from '../memory/MemoryService';
 import { Collector } from '../types';
+import { isCurrentAppExcluded } from './activeAppState';
 
 const execAsync = promisify(exec);
 
@@ -49,6 +50,7 @@ export class ClipboardCollector implements Collector {
         const content = await this.getClipboardContent();
         if (content && content !== this.lastContent) {
           this.lastContent = content;
+          if (isCurrentAppExcluded()) return; // sensitive app focused — skip capture
           await this.memoryService.storeEvent({
             type: 'CLIPBOARD',
             content,

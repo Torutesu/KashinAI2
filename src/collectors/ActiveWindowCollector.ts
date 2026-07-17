@@ -2,6 +2,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import { MemoryService } from '../memory/MemoryService';
 import { Collector } from '../types';
+import { setCurrentApp, isCaptureExcluded } from './activeAppState';
 
 const execAsync = promisify(exec);
 
@@ -64,6 +65,12 @@ export class ActiveWindowCollector implements Collector {
     this.interval = setInterval(async () => {
       try {
         const windowInfo = await this.getActiveWindow();
+        if (windowInfo && windowInfo.app) {
+          // Track the focused app so other collectors can pause on sensitive apps.
+          setCurrentApp(windowInfo.app);
+        }
+        // Don't record activity for excluded (sensitive) apps.
+        if (windowInfo && windowInfo.app && isCaptureExcluded(windowInfo.app)) return;
         if (windowInfo && windowInfo.window && windowInfo.window !== this.lastWindow) {
           this.lastWindow = windowInfo.window;
           await this.memoryService.storeEvent({
