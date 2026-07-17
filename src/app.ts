@@ -13,7 +13,7 @@ import { createChatStreamHandler } from './llm/chatStream';
 import { ActionExecutor } from './actions/ActionExecutor';
 import { createVoiceRoutes } from './voice/VoiceRoutes'; //
 import { getToolEmbeddingCorpus } from './llm/Toolregistry';
-import { requireApiToken, corsOriginCheck } from './middleware/auth';
+import { requireApiToken, corsOriginCheck, listDevices } from './middleware/auth';
 import { createRateLimiter } from './middleware/rateLimit';
 import { PrismaConversationStore } from './memory/PrismaConversationStore';
 import { setVSCodeLiveState } from './integrations/vscodeLiveState';
@@ -74,6 +74,11 @@ app.get('/health', (req: Request, res: Response) => {
 app.get('/ready', createReadyHandler(() => memoryService.isReady()));
 app.get('/metrics', metricsHandler);
 app.get('/version', createVersionHandler(APP_VERSION));
+
+// Configured device labels (never the secrets); requires a valid token.
+app.get('/devices', requireApiToken, (_req: Request, res: Response) => {
+  res.json({ devices: listDevices() });
+});
 
 // --- Context APIs ---
 app.get('/context/current', async (req: Request, res: Response) => {

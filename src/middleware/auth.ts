@@ -7,26 +7,51 @@
 // CORS alone cannot tell the extension apart from an arbitrary website — so a
 // shared secret token is the real authentication boundary.
 //
-// Configure `API_TOKEN` in the environment and send it as the `x-api-token`
-// header (or `Authorization: Bearer <token>`). If `API_TOKEN` is unset the
+// Send a token as the `x-api-token` header (or `Authorization: Bearer <token>`).
+// Two ways to configure, both supported together:
+//   - `API_TOKEN` — a single token (label "default").
+//   - `API_TOKENS` — comma-separated `label:token` pairs, one per device, e.g.
+//       "laptop:abc123,phone:def456"
+// A revoked device = remove its pair and restart. If NO token is configured the
 // server runs in an explicitly-warned "open" mode for local development only.
 
 import { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
+import { log } from '../utils/logger';
 
-// Read lazily (not at module load) so it reflects env loaded via ./loadEnv.
-function getApiToken(): string {
-  return process.env.API_TOKEN || '';
+export interface DeviceToken {
+  label: string;
+  token: string;
+}
+
+/**
+ * Parse configured tokens from env (pure). Combines `API_TOKEN` (label
+ * "default") with the `API_TOKENS` `label:token` list. Read lazily so it
+ * reflects env loaded via ./loadEnv.
+ */
+export function parseTokens(env: NodeJS.ProcessEnv = process.env): DeviceToken[] {
+  const tokens: DeviceToken[] = [];
+  if (env.API_TOKEN) tokens.push({ label: 'default', token: env.API_TOKEN });
+  for (const pair of (env.API_TOKENS || '').split(',').map((s) => s.trim()).filter(Boolean)) {
+    const idx = pair.indexOf(':');
+    if (idx > 0) tokens.push({ label: pair.slice(0, idx).trim(), token: pair.slice(idx + 1).trim() });
+    else tokens.push({ label: 'device', token: pair });
+  }
+  return tokens.filter((t) => t.token.length > 0);
+}
+
+/** Device labels for the /devices endpoint (never exposes the secrets). */
+export function listDevices(env: NodeJS.ProcessEnv = process.env): string[] {
+  return parseTokens(env).map((t) => t.label);
 }
 
 let warned = false;
 function warnOnce() {
   if (!warned) {
     warned = true;
-    console.warn(
-      '[auth] API_TOKEN is not set — state-changing endpoints are UNAUTHENTICATED. ' +
-        'Any local process (or website, via the extension) can trigger actions. ' +
-        'Set API_TOKEN in your .env before using this beyond local testing.'
+    log.warn(
+      '[auth] No API token configured (API_TOKEN / API_TOKENS) — state-changing ' +
+        'endpoints are UNAUTHENTICATED. Set one before using this beyond local testing.'
     );
   }
 }
@@ -48,15 +73,18 @@ function tokensMatch(provided: string, expected: string): boolean {
 }
 
 export function requireApiToken(req: Request, res: Response, next: NextFunction) {
-  const apiToken = getApiToken();
-  if (!apiToken) {
+  const tokens = parseTokens();
+  if (tokens.length === 0) {
     warnOnce();
     return next(); // dev-only open mode
   }
   const provided = extractToken(req);
-  if (!provided || !tokensMatch(provided, apiToken)) {
+  const match = provided ? tokens.find((t) => tokensMatch(provided, t.token)) : undefined;
+  if (!match) {
     return res.status(401).json({ error: 'Unauthorized: valid x-api-token header required.' });
   }
+  // Attribute the request to a device label (for logging / auditing).
+  (req as Request & { deviceLabel?: string }).deviceLabel = match.label;
   next();
 }
 

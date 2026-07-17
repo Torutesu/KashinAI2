@@ -90,7 +90,8 @@ Then fill it in. Key variables (see `.env.example` for the full list):
 | Variable | Purpose |
 |----------|---------|
 | `GEMINI_API_KEY` | Google Gemini API key (required for `/chat`) |
-| `API_TOKEN` | **Set this.** Shared token required on state-changing routes. If unset, those routes run unauthenticated (dev only) and the server warns. |
+| `API_TOKEN` | **Set this.** Token required on state-changing routes. If unset, those routes run unauthenticated (dev only) and the server warns. |
+| `API_TOKENS` | Optional per-device tokens: `label:token` pairs, comma-separated (e.g. `laptop:abc,phone:def`). Combined with `API_TOKEN`. |
 | `ALLOWED_ORIGINS` | Comma-separated CORS allowlist (optional) |
 | `MEMORY_RETENTION_DAYS` | Days to keep memories before pruning (default 30; 0 disables) |
 | `RATE_LIMIT_WINDOW_MS` / `RATE_LIMIT_MAX` | Per-IP rate limit (default 60/min; `RATE_LIMIT_MAX=0` disables) |
@@ -145,6 +146,7 @@ GET  /health
 GET  /ready                    # readiness probe (503 until vector DB ready)
 GET  /metrics                  # Prometheus counters
 GET  /version                  # { name, version }
+GET  /devices                  # device labels (auth; never the secrets)
 GET  /context/current
 GET  /context/recent?limit=10
 GET  /memory/search?query=<q>
