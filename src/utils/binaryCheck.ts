@@ -36,7 +36,6 @@ interface BinarySpec {
 }
 
 const BINARIES: BinarySpec[] = [
-  { cmd: 'sqlite3', feature: 'browser history collector', platforms: ['darwin', 'linux', 'win32'] },
   { cmd: 'tesseract', feature: 'screen OCR collector', platforms: ['darwin', 'linux', 'win32'] },
   { cmd: 'code', feature: 'VS Code open/collector', platforms: ['darwin', 'linux', 'win32'] },
   { cmd: 'xdotool', feature: 'active window / selected text (X11)', platforms: ['linux'] },

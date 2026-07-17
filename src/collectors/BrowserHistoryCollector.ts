@@ -1,17 +1,11 @@
-import { exec } from 'child_process';
-import { promisify } from 'util';
 import { MemoryService } from '../memory/MemoryService';
 import { Collector } from '../types';
 import os from 'os';
 import path from 'path';
 import fs from 'fs';
 import { browserUserDataDirs, profileHistoryPaths } from './browserPaths';
+import { readLatestVisit } from './browserHistoryDb';
 import { warnThrottled } from '../utils/logger';
-
-const execAsync = promisify(exec);
-
-// Unlikely-to-appear field separator for sqlite3 output.
-const FIELD_SEP = String.fromCharCode(1);
 
 export class BrowserHistoryCollector implements Collector {
   private interval: NodeJS.Timeout | null = null;
@@ -80,21 +74,15 @@ export class BrowserHistoryCollector implements Collector {
           const tempPath = this.tempPathFor(i);
           try {
             this.copyWithWal(dbPath, tempPath);
-            const query = `SELECT url, title FROM urls ORDER BY last_visit_time DESC LIMIT 1;`;
-            const { stdout } = await execAsync(`sqlite3 -separator "${FIELD_SEP}" "${tempPath}" "${query}"`);
-
-            const result = stdout.trim().split(FIELD_SEP);
-            if (result.length === 2) {
-              const [url, title] = result;
-              if (url && url !== this.lastUrlByDb.get(dbPath)) {
-                this.lastUrlByDb.set(dbPath, url);
-                await this.memoryService.storeEvent({
-                  type: 'BROWSER_HISTORY',
-                  app: title,
-                  content: url,
-                  timestamp: new Date(),
-                });
-              }
+            const visit = readLatestVisit(tempPath);
+            if (visit && visit.url !== this.lastUrlByDb.get(dbPath)) {
+              this.lastUrlByDb.set(dbPath, visit.url);
+              await this.memoryService.storeEvent({
+                type: 'BROWSER_HISTORY',
+                app: visit.title,
+                content: visit.url,
+                timestamp: new Date(),
+              });
             }
           } finally {
             this.cleanupTemp(tempPath);
