@@ -107,6 +107,8 @@ const TOOL_KEYWORDS: Record<string, string[]> = {
   gdrive_search_files: ['search drive', 'find in drive', 'google drive file', 'search google drive'],
   gdrive_read_file: ['read drive file', 'open drive file', 'read the google doc'],
   gdrive_create_file: ['create google doc', 'save to drive', 'new google doc', 'save to google drive', 'make a doc'],
+  gdrive_update_file: ['update google doc', 'overwrite google doc', 'replace doc contents', 'rewrite the doc'],
+  gdrive_append_file: ['append to google doc', 'add to google doc', 'add to my notes doc', 'append to the doc'],
 
   // jira
   jira_search_issues: ['search jira', 'find jira issue', 'jira tickets'],
@@ -546,6 +548,36 @@ export const TOOL_REGISTRY: RegisteredTool[] = [
           content: { type: 'string', description: 'The plain-text body of the document' },
         },
         required: ['name', 'content'],
+      },
+    },
+  },
+  {
+    category: 'gdrive',
+    def: {
+      name: 'gdrive_update_file',
+      description: 'Replace the entire text content of an existing Google Doc that this app created.',
+      parameters: {
+        type: 'object',
+        properties: {
+          fileId: { type: 'string', description: 'The Drive file ID' },
+          content: { type: 'string', description: 'The new full plain-text content' },
+        },
+        required: ['fileId', 'content'],
+      },
+    },
+  },
+  {
+    category: 'gdrive',
+    def: {
+      name: 'gdrive_append_file',
+      description: 'Append plain text to the end of an existing Google Doc that this app created.',
+      parameters: {
+        type: 'object',
+        properties: {
+          fileId: { type: 'string', description: 'The Drive file ID' },
+          content: { type: 'string', description: 'The text to append' },
+        },
+        required: ['fileId', 'content'],
       },
     },
   },

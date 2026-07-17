@@ -73,4 +73,49 @@ export class GoogleDriveIntegration {
       throw new IntegrationError('Failed to create Drive file', error);
     }
   }
+
+  /**
+   * Replace the full text content of an existing (app-created) Google Doc.
+   * Uploaded text/plain is re-imported into Doc format.
+   */
+  async updateFile(fileId: string, content: string): Promise<string> {
+    if (!fileId || !fileId.trim()) throw new IntegrationError('A file ID is required');
+    try {
+      const drive = this.drive();
+      const res = await drive.files.update({
+        fileId: fileId.trim(),
+        media: { mimeType: 'text/plain', body: content || '' },
+        fields: 'id, name, webViewLink',
+      });
+      const f = res.data;
+      return `Updated Google Doc "${f.name}" (ID: ${f.id})${f.webViewLink ? ` — ${f.webViewLink}` : ''}`;
+    } catch (error) {
+      throw new IntegrationError('Failed to update Drive file', error);
+    }
+  }
+
+  /**
+   * Append text to an existing (app-created) Google Doc: reads the current text,
+   * concatenates, and re-writes. Formatting is not preserved (plain text).
+   */
+  async appendFile(fileId: string, content: string): Promise<string> {
+    if (!fileId || !fileId.trim()) throw new IntegrationError('A file ID is required');
+    if (!content) throw new IntegrationError('Nothing to append');
+    try {
+      const drive = this.drive();
+      const id = fileId.trim();
+      const exp = await drive.files.export({ fileId: id, mimeType: 'text/plain' }, { responseType: 'text' });
+      const existing = String(exp.data ?? '');
+      const separator = existing.length && !existing.endsWith('\n') ? '\n' : '';
+      const res = await drive.files.update({
+        fileId: id,
+        media: { mimeType: 'text/plain', body: existing + separator + content },
+        fields: 'id, name, webViewLink',
+      });
+      const f = res.data;
+      return `Appended to Google Doc "${f.name}" (ID: ${f.id})${f.webViewLink ? ` — ${f.webViewLink}` : ''}`;
+    } catch (error) {
+      throw new IntegrationError('Failed to append to Drive file', error);
+    }
+  }
 }

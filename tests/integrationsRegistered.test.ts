@@ -10,7 +10,7 @@ import { isDestructiveTool } from '../src/llm/OrchestratorService';
 import { GoogleDriveIntegration } from '../src/integrations/GoogleDriveIntegration';
 
 const NEW_TOOLS = [
-  'gdrive_search_files', 'gdrive_read_file', 'gdrive_create_file',
+  'gdrive_search_files', 'gdrive_read_file', 'gdrive_create_file', 'gdrive_update_file', 'gdrive_append_file',
   'jira_search_issues', 'jira_read_issue', 'jira_create_issue', 'jira_comment_issue',
   'linear_search_issues', 'linear_create_issue',
   'notify', 'send_telegram_message', 'send_discord_message',
@@ -37,4 +37,20 @@ test('Google Drive create rejects an empty file name before any API call', async
 
 test('gdrive_create_file is confirmation-gated (destructive)', () => {
   assert.ok(isDestructiveTool('gdrive_create_file'), 'creating a Drive file should require confirmation');
+});
+
+test('Google Drive update/append require auth (throw without a token)', async () => {
+  await assert.rejects(() => new GoogleDriveIntegration().updateFile('abc', 'body'), /Failed to update Drive file/);
+  await assert.rejects(() => new GoogleDriveIntegration().appendFile('abc', 'body'), /Failed to append to Drive file/);
+});
+
+test('Google Drive update/append validate their inputs before any API call', async () => {
+  await assert.rejects(() => new GoogleDriveIntegration().updateFile('  ', 'body'), /file ID is required/);
+  await assert.rejects(() => new GoogleDriveIntegration().appendFile('  ', 'body'), /file ID is required/);
+  await assert.rejects(() => new GoogleDriveIntegration().appendFile('abc', ''), /Nothing to append/);
+});
+
+test('gdrive update + append are confirmation-gated (destructive)', () => {
+  assert.ok(isDestructiveTool('gdrive_update_file'));
+  assert.ok(isDestructiveTool('gdrive_append_file'));
 });
