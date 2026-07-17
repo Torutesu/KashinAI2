@@ -90,6 +90,24 @@ export class VectorService {
     }
   }
 
+  /** Delete all memory vectors of a given type. Returns rows removed. */
+  async deleteByType(type: string): Promise<number> {
+    if (!this.isConnected) return 0;
+    try {
+      const tables = await this.db.tableNames();
+      if (!tables.includes(this.TABLE_NAME)) return 0;
+      const table = await this.db.openTable(this.TABLE_NAME);
+      const before = await table.countRows();
+      // `type` comes from a fixed validated set, so inlining is safe.
+      await table.delete(`type = '${type}'`);
+      const after = await table.countRows();
+      return Math.max(0, before - after);
+    } catch (error) {
+      log.error('[VectorService] deleteByType failed:', error);
+      return 0;
+    }
+  }
+
   async searchMemory(query: string, limit: number = 3): Promise<any[]> {
     if (!this.isConnected) return [];
     try {

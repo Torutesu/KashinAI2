@@ -18,6 +18,10 @@ import { createRateLimiter } from './middleware/rateLimit';
 import { PrismaConversationStore } from './memory/PrismaConversationStore';
 import { setVSCodeLiveState } from './integrations/vscodeLiveState';
 import { metricsHandler, createReadyHandler, createVersionHandler } from './routes/ops';
+import { setExcludeApps } from './collectors/activeAppState';
+import { getSetting, setSetting } from './settings/settingsStore';
+import { recordAction } from './utils/actionLog';
+import { privacyGetHandler, createPrivacyPutHandler, actionsHistoryHandler, createMemoryClearHandler } from './routes/manage';
 
 // Resolve the app version once (cwd is the project root in all run modes).
 let APP_VERSION = '0.0.0';
@@ -56,6 +60,11 @@ const actionExecutor = new ActionExecutor();
   } catch (error) {
     log.error('[app] Tool vector index bootstrap failed — will keep using keyword-based tool selection:', error);
   }
+  // Restore the dashboard-editable privacy list (falls back to env default).
+  try {
+    const saved = await getSetting('captureExcludeApps');
+    if (saved !== null) setExcludeApps(saved);
+  } catch { /* keep env default */ }
 })();
 
 // Basic validation middleware
@@ -79,6 +88,12 @@ app.get('/version', createVersionHandler(APP_VERSION));
 app.get('/devices', requireApiToken, (_req: Request, res: Response) => {
   res.json({ devices: listDevices() });
 });
+
+// --- Dashboard management (writes require a token) ---
+app.get('/settings/privacy', requireApiToken, privacyGetHandler);
+app.put('/settings/privacy', requireApiToken, createPrivacyPutHandler((v) => setSetting('captureExcludeApps', v)));
+app.get('/actions/history', requireApiToken, actionsHistoryHandler);
+app.post('/memory/clear', requireApiToken, createMemoryClearHandler((s) => memoryService.clearSource(s)));
 
 // --- Context APIs ---
 app.get('/context/current', async (req: Request, res: Response) => {
@@ -125,6 +140,7 @@ app.post('/actions/execute', requireApiToken, validateBody, async (req: Request,
   const { toolName, args } = req.body;
   if (!toolName) return res.status(400).json({ error: 'toolName is required' });
   const result = await actionExecutor.execute(toolName, args || {});
+  recordAction({ tool: toolName, ok: result.ok, device: (req as Request & { deviceLabel?: string }).deviceLabel }, Date.now());
   res.json({ result: result.message, ok: result.ok });
 });
 
