@@ -95,6 +95,12 @@
     <div class="note" id="chartNote">Sampled every 30s.</div>
   </section>
 
+  <section class="panel wide">
+    <h2>Integrations</h2>
+    <div class="chips" id="integrations"></div>
+    <div class="note" id="integrationsNote">Configured integrations (green). Requires token.</div>
+  </section>
+
   <section class="panel">
     <h2>Privacy — pause capture for apps</h2>
     <div class="row">
@@ -256,7 +262,19 @@
       : '<tr><td colspan="4" class="muted">No actions yet.</td></tr>';
   }
 
-  function refreshManagement() { refreshPrivacy(); refreshActions(); }
+  async function refreshIntegrations() {
+    const data = await authJson('/integrations/status');
+    const box = $('integrations');
+    if (!data) { box.innerHTML = '<span class="muted">Enter a token to view.</span>'; return; }
+    const items = data.integrations || [];
+    box.innerHTML = items.map((s) => {
+      const color = s.configured ? 'var(--ok)' : 'var(--muted)';
+      const mark = s.configured ? '●' : '○';
+      return `<span class="chip" title="${esc(s.requires)}"><span style="color:${color};margin-right:5px">${mark}</span>${esc(s.name)}</span>`;
+    }).join('');
+  }
+
+  function refreshManagement() { refreshPrivacy(); refreshActions(); refreshIntegrations(); }
 
   // --- metrics time-series chart (SVG polylines) ---
   const SVG_NS = 'http://www.w3.org/2000/svg';

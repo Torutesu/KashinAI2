@@ -6,6 +6,7 @@
 import { Request, Response } from 'express';
 import { renderPrometheus } from '../utils/metrics';
 import { getSeries } from '../utils/metricsHistory';
+import { getIntegrationStatus } from '../integrations/integrationStatus';
 
 export function metricsHandler(_req: Request, res: Response) {
   res.setHeader('Content-Type', 'text/plain; version=0.0.4');
@@ -15,6 +16,11 @@ export function metricsHandler(_req: Request, res: Response) {
 /** Time series of metric snapshots for the dashboard graph. */
 export function metricsHistoryHandler(_req: Request, res: Response) {
   res.json({ series: getSeries() });
+}
+
+/** Which integrations are configured (booleans only — never exposes secrets). */
+export function integrationStatusHandler(_req: Request, res: Response) {
+  res.json({ integrations: getIntegrationStatus() });
 }
 
 /** Readiness probe: 200 when ready, 503 otherwise (e.g. vector DB still loading). */

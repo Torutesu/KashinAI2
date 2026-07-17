@@ -17,7 +17,7 @@ import { requireApiToken, requireAuthWhenPublic, corsOriginCheck, listDevices } 
 import { createRateLimiter } from './middleware/rateLimit';
 import { PrismaConversationStore } from './memory/PrismaConversationStore';
 import { setVSCodeLiveState } from './integrations/vscodeLiveState';
-import { metricsHandler, metricsHistoryHandler, createReadyHandler, createVersionHandler } from './routes/ops';
+import { metricsHandler, metricsHistoryHandler, integrationStatusHandler, createReadyHandler, createVersionHandler } from './routes/ops';
 import { setExcludeApps } from './collectors/activeAppState';
 import { getSetting, setSetting } from './settings/settingsStore';
 import { recordAction } from './utils/actionLog';
@@ -91,6 +91,9 @@ app.get('/version', createVersionHandler(APP_VERSION));
 app.get('/devices', requireApiToken, (_req: Request, res: Response) => {
   res.json({ devices: listDevices() });
 });
+
+// Which integrations are wired up (booleans only); requires a valid token.
+app.get('/integrations/status', requireApiToken, integrationStatusHandler);
 
 // --- Dashboard management (writes require a token) ---
 app.get('/settings/privacy', requireApiToken, privacyGetHandler);

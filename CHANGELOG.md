@@ -3,6 +3,14 @@
 All notable changes to KashinAI2 are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- **Integration status endpoint** (`GET /integrations/status`, token-gated): reports
+  which integrations are configured (Slack, GitHub, Google, Notion, Jira, Linear,
+  Telegram, Discord) as booleans plus the names of the settings each needs — never
+  any secret values. Surfaced as an "Integrations" panel on the dashboard.
+
 ## [1.5.0] - 2026-07-17
 
 ### Added

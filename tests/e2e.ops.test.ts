@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import express from 'express';
 import type { Server } from 'node:http';
 import path from 'path';
-import { metricsHandler, metricsHistoryHandler, createReadyHandler, createVersionHandler } from '../src/routes/ops';
+import { metricsHandler, metricsHistoryHandler, integrationStatusHandler, createReadyHandler, createVersionHandler } from '../src/routes/ops';
 import { increment, resetMetrics, snapshot } from '../src/utils/metrics';
 import { recordSample, clearSeries } from '../src/utils/metricsHistory';
 
@@ -24,6 +24,7 @@ before(async () => {
   const app = express();
   app.get('/metrics', metricsHandler);
   app.get('/metrics/history', metricsHistoryHandler);
+  app.get('/integrations/status', integrationStatusHandler);
   app.get('/ready', createReadyHandler(() => ready));
   app.get('/version', createVersionHandler('9.9.9'));
   // Serve the real dashboard from ./public (cwd is the repo root under the test runner).
@@ -57,6 +58,16 @@ test('/metrics/history returns the sampled time series', async () => {
   assert.equal(body.series.length, 2);
   assert.equal(body.series[0].t, 1000);
   assert.equal(body.series[1].values.events_stored_total, 7);
+});
+
+test('/integrations/status lists integrations with boolean configured flags', async () => {
+  const res = await fetch(`${baseUrl}/integrations/status`);
+  assert.equal(res.status, 200);
+  const body = (await res.json()) as { integrations: { name: string; configured: boolean; requires: string }[] };
+  assert.ok(Array.isArray(body.integrations) && body.integrations.length >= 8);
+  const slack = body.integrations.find((i) => i.name === 'slack')!;
+  assert.equal(typeof slack.configured, 'boolean');
+  assert.equal(slack.requires, 'SLACK_BOT_TOKEN');
 });
 
 test('/ready reports 503 until ready, then 200', async () => {
