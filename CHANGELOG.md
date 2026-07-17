@@ -3,7 +3,7 @@
 All notable changes to KashinAI2 are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.5.0] - 2026-07-17
 
 ### Added
 - **Google Drive write** (`gdrive_create_file`): create a new Google Doc from
@@ -14,6 +14,12 @@ All notable changes to KashinAI2 are documented here. This project follows
   call fires a best-effort notification through the configured `notify` channels.
   Off by default; never blocks the caller and never recurses on the notification
   tools themselves.
+
+### Changed
+- **Per-device conversation history**: chat history is now namespaced by the
+  authenticated device label (`device:sessionId`), so two devices sharing the
+  same `x-session-id` on one backend no longer see each other's threads. Existing
+  histories keyed by the bare session id won't carry over.
 
 ## [1.4.0] - 2026-07-17
 

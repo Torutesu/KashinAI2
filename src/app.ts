@@ -21,6 +21,7 @@ import { metricsHandler, metricsHistoryHandler, createReadyHandler, createVersio
 import { setExcludeApps } from './collectors/activeAppState';
 import { getSetting, setSetting } from './settings/settingsStore';
 import { recordAction } from './utils/actionLog';
+import { resolveSessionId } from './utils/sessionScope';
 import { privacyGetHandler, createPrivacyPutHandler, actionsHistoryHandler, createMemoryClearHandler } from './routes/manage';
 
 // Resolve the app version once (cwd is the project root in all run modes).
@@ -124,8 +125,9 @@ app.post('/chat', requireApiToken, async (req: Request, res: Response) => {
     if (!prompt || typeof prompt !== 'string') return res.status(400).json({ error: 'Prompt is required and must be a string' });
     if (prompt.length > 5000) return res.status(400).json({ error: 'Prompt is too long (max 5000 characters)' });
 
-    // Confirmation state is scoped per session so concurrent callers don't mix.
-    const sessionId = (req.get('x-session-id') || (typeof req.body.sessionId === 'string' ? req.body.sessionId : '') || 'default').slice(0, 128);
+    // Confirmation + history state is scoped per (device, session) so concurrent
+    // callers — including different devices on the same session id — never mix.
+    const sessionId = resolveSessionId(req);
     const response = await orchestratorService.processPrompt(prompt, sessionId);
     res.json({ response });
   } catch (error) {
