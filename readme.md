@@ -203,6 +203,14 @@ TLS; only 80/443 are exposed. Set `DOMAIN` for a real hostname (automatic Let's
 Encrypt) or use `localhost` (internal cert). See [`SECURITY.md`](./SECURITY.md)
 for the trust model and per-device token setup.
 
+### Public URL via Cloudflare Tunnel
+
+`docker compose -f docker-compose.cloudflare.yml up -d` exposes the API on a
+public HTTPS URL through a Cloudflare Tunnel (no ports opened). It runs with
+`REQUIRE_AUTH_ALL=true` so read routes are token-gated too. See
+[`DEPLOY.md`](./DEPLOY.md). (The app can't run on Cloudflare Workers — native
+deps + local state — so the tunnel fronts a normally-running instance.)
+
 ## Testing
 
 ```bash

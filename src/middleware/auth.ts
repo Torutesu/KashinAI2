@@ -72,6 +72,18 @@ function tokensMatch(provided: string, expected: string): boolean {
   return crypto.timingSafeEqual(a, b);
 }
 
+/**
+ * Gate read-only routes too when the backend is publicly exposed (e.g. via a
+ * Cloudflare Tunnel). Set `REQUIRE_AUTH_ALL=true` so captured context is never
+ * served without a token. When unset, read routes stay open for local use.
+ */
+export function requireAuthWhenPublic(req: Request, res: Response, next: NextFunction) {
+  if (process.env.REQUIRE_AUTH_ALL === 'true') {
+    return requireApiToken(req, res, next);
+  }
+  next();
+}
+
 export function requireApiToken(req: Request, res: Response, next: NextFunction) {
   const tokens = parseTokens();
   if (tokens.length === 0) {
