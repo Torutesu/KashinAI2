@@ -1,4 +1,5 @@
 // src/memory/VectorService.ts
+import { log } from '../utils/logger';
 import * as lancedb from '@lancedb/lancedb';
 import { pipeline } from '@xenova/transformers';
 
@@ -26,7 +27,7 @@ export class VectorService {
   private async doInitialize(): Promise<void> {
     try {
       // 1. Initialize local embedding model (runs privately on CPU)
-      console.log('[VectorService] Loading embedding model (first run may take a minute to download)...');
+      log.info('[VectorService] Loading embedding model (first run may take a minute to download)...');
       this.extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
 
       // 2. Connect to local LanceDB
@@ -43,9 +44,9 @@ export class VectorService {
       }
 
       this.isConnected = true;
-      console.log('[VectorService] Connected to LanceDB and model ready.');
+      log.info('[VectorService] Connected to LanceDB and model ready.');
     } catch (error) {
-      console.error('[VectorService] Initialization failed:', error);
+      log.error('[VectorService] Initialization failed:', error);
     }
   }
 
@@ -63,7 +64,7 @@ export class VectorService {
         { vector, text, type, timestamp: new Date().toISOString() }
       ]);
     } catch (error) {
-      console.error('[VectorService] Store memory failed:', error);
+      log.error('[VectorService] Store memory failed:', error);
     }
   }
 
@@ -84,7 +85,7 @@ export class VectorService {
       const after = await table.countRows();
       return Math.max(0, before - after);
     } catch (error) {
-      console.error('[VectorService] Prune failed:', error);
+      log.error('[VectorService] Prune failed:', error);
       return 0;
     }
   }
@@ -101,14 +102,14 @@ export class VectorService {
       // Filter out the initialization record and return
       return results.filter((r: any) => r.text !== 'initialize');
     } catch (error) {
-      console.error('[VectorService] Search memory failed:', error);
+      log.error('[VectorService] Search memory failed:', error);
       return [];
     }
   }
 
   async initToolIndex(tools: { name: string; text: string }[]): Promise<void> {
     if (!this.isConnected) {
-      console.warn('[VectorService] Cannot build tool index — not connected yet.');
+      log.warn('[VectorService] Cannot build tool index — not connected yet.');
       return;
     }
     try {
@@ -122,7 +123,7 @@ export class VectorService {
           return;
         }
         await this.db.dropTable(this.TOOL_TABLE_NAME);
-        console.log('[VectorService] Tool count changed — rebuilding tool index.');
+        log.info('[VectorService] Tool count changed — rebuilding tool index.');
       }
 
       const rows = [];
@@ -131,9 +132,9 @@ export class VectorService {
         rows.push({ vector, name: t.name, text: t.text });
       }
       await this.db.createTable(this.TOOL_TABLE_NAME, rows);
-      console.log(`[VectorService] Built tool index with ${rows.length} tools.`);
+      log.info(`[VectorService] Built tool index with ${rows.length} tools.`);
     } catch (error) {
-      console.error('[VectorService] Tool index init failed:', error);
+      log.error('[VectorService] Tool index init failed:', error);
     }
   }
 
@@ -149,7 +150,7 @@ export class VectorService {
 
       return results.map((r: any) => ({ name: r.name, distance: r._distance }));
     } catch (error) {
-      console.error('[VectorService] Tool search failed:', error);
+      log.error('[VectorService] Tool search failed:', error);
       return [];
     }
   }

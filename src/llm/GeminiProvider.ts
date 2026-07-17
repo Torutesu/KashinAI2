@@ -1,4 +1,5 @@
 // src/llm/GeminiProvider.ts
+import { log } from '../utils/logger';
 import { GoogleGenAI } from '@google/genai';
 import { LLMProvider, LLMResponse, LLMHistoryMessage, ToolDefinition, ToolCall } from '../types';
 
@@ -63,7 +64,7 @@ export class GeminiProvider implements LLMProvider {
         toolCalls
       };
     } catch (error) {
-      console.error('[GeminiProvider] API Error:', error);
+      log.error('[GeminiProvider] API Error:', error);
       throw error;
     }
   }

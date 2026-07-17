@@ -1,4 +1,5 @@
 // src/llm/OrchestratorService.ts
+import { log } from '../utils/logger';
 import { RetrieverService } from '../retriever/RetrieverService';
 import { LLMProvider, LLMHistoryMessage, ToolCall } from '../types';
 import { ActionExecutor } from '../actions/ActionExecutor';
@@ -76,7 +77,7 @@ export class OrchestratorService {
     // 2. Select tools via embedding similarity (LanceDB), falling back to
     //    keyword matching internally if the vector index isn't ready.
     const tools = await selectRelevantToolsSemantic(this.memoryService, prompt);
-    console.log(`[Orchestrator] Sending ${tools.length} tool(s) to LLM: ${tools.map(t => t.name).join(', ')}`);
+    log.info(`[Orchestrator] Sending ${tools.length} tool(s) to LLM: ${tools.map(t => t.name).join(', ')}`);
     onEvent?.({ type: 'status', data: `Considering ${tools.length} tool(s).` });
 
     // 3. AGENTIC LOOP - Allows the AI to use multiple tools in sequence.
@@ -152,7 +153,7 @@ export class OrchestratorService {
   private async runToolCalls(calls: ToolCall[]): Promise<string> {
     let executionResults = "I executed the following actions:\n";
     for (const call of calls) {
-      console.log(`[Orchestrator] Executing tool: ${call.name} with args:`, call.args);
+      log.info(`[Orchestrator] Executing tool: ${call.name} with args:`, call.args);
       const result = await this.actionExecutor.execute(call.name, call.args);
       increment('tool_calls_total');
       if (!result.ok) increment('tool_failures_total');
