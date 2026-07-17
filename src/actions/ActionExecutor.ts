@@ -181,9 +181,10 @@ export class ActionExecutor {
         case 'calendar_delete_event':
           return await this.calendar.deleteEvent(String(args.eventId));
 
-        // Google Drive (read-only)
+        // Google Drive (read + create)
         case 'gdrive_search_files': return await this.gdrive.searchFiles(String(args.query));
         case 'gdrive_read_file': return await this.gdrive.readFile(String(args.fileId));
+        case 'gdrive_create_file': return await this.gdrive.createFile(String(args.name), String(args.content ?? ''));
 
         // Jira
         case 'jira_search_issues': return await this.jira.searchIssues(String(args.query));

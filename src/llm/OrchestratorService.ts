@@ -30,10 +30,16 @@ const DESTRUCTIVE_TOOLS = new Set([
   'jira_create_issue',
   'jira_comment_issue',
   'linear_create_issue',
+  'gdrive_create_file',
   'notify',
   'send_telegram_message',
   'send_discord_message',
 ]);
+
+/** True when a tool mutates external state / sends something and needs confirmation. */
+export function isDestructiveTool(name: string): boolean {
+  return DESTRUCTIVE_TOOLS.has(name);
+}
 
 const AFFIRM = new Set(['yes', 'y', 'confirm', 'haan', 'ha', 'go ahead', 'do it']);
 const DENY = new Set(['no', 'n', 'cancel', 'nahi', 'stop']);
