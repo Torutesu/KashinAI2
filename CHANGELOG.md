@@ -3,6 +3,14 @@
 All notable changes to KashinAI2 are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- **Proactive failure alerts**: with `NOTIFY_ON_TOOL_FAILURE=true`, a failed tool
+  call fires a best-effort notification through the configured `notify` channels.
+  Off by default; never blocks the caller and never recurses on the notification
+  tools themselves.
+
 ## [1.4.0] - 2026-07-17
 
 ### Added
