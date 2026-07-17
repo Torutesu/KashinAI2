@@ -3,6 +3,17 @@
 All notable changes to KashinAI2 are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## [1.2.0] - unreleased
+
+Per-owner multi-device release (see `docs/requirements-v1.2.md`). Landing in
+stages.
+
+### Added
+- **Multi-device tokens**: `API_TOKENS` (comma-separated `label:token` pairs)
+  alongside `API_TOKEN`; any configured token authenticates, requests are tagged
+  with the device label, and `GET /devices` lists device labels (never secrets).
+  Revoke a device by removing its pair and restarting.
+
 ## [1.1.0] - 2026-07-17
 
 ### Added
