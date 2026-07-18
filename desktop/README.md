@@ -10,11 +10,14 @@ usual dashboard once the engine is up. A menubar tray provides Open / Quit.
 > (see prerequisites) — it has not been built end-to-end from the CI sandbox, so
 > expect to iterate on the first local build.
 
-## Prerequisites (on the Mac)
+**End users need nothing preinstalled** — a matching Node runtime is bundled into
+the `.app` (the build step downloads the Node version/arch that built the native
+modules, so their ABI matches). A system `node` (or `KASHINAI_NODE`) is only a
+fallback if the bundled runtime is missing.
 
-- **Node 22+** (`brew install node`) — the app spawns your system `node`, or set
-  `KASHINAI_NODE=/path/to/node`. (Shipping a bundled Node runtime is a planned
-  follow-up.)
+## Prerequisites (on the build Mac only)
+
+- **Node 22+** (`brew install node`) — builds the engine and is bundled into the app.
 - **Rust** (`https://rustup.rs`) and **Xcode Command Line Tools** (`xcode-select --install`).
 
 ## Develop / build
@@ -34,9 +37,10 @@ npm run build               # produces src-tauri/target/release/bundle/dmg/*.dmg
 ## Configuration at runtime
 
 The engine reads its usual env vars. On first launch a stable `API_TOKEN` is
-generated and stored in the app-data dir. To use `/chat`, set your Gemini key —
-either export `GEMINI_API_KEY` before launching, or add it to a `.env` you place
-next to the bundled engine. (A settings UI for keys is a planned follow-up.)
+generated and stored in the app-data dir. To use `/chat`, set your Gemini key
+**right in the dashboard** — the "API keys" panel (enter the app's token first,
+shown once you paste `API_TOKEN`) saves it to the app-data settings store and
+applies it without a restart. No env editing required.
 
 ## CI
 

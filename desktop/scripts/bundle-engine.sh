@@ -32,4 +32,20 @@ npm ci --omit=dev
 npm install --no-save prisma
 npx prisma generate
 
+# Bundle a Node runtime so testers don't need Node installed. Use the SAME
+# version/arch that just built the native modules, so their ABI matches.
+NODE_VER="$(node -p 'process.version')"                                   # e.g. v22.22.2
+NODE_ARCH="$(node -p 'process.arch === "arm64" ? "arm64" : "x64"')"
+NODE_PLAT="$(node -p 'process.platform')"                                 # darwin on a Mac build
+NODE_PKG="node-${NODE_VER}-${NODE_PLAT}-${NODE_ARCH}"
+echo "[bundle-engine] bundling Node runtime ${NODE_PKG}"
+mkdir -p "$DEST/node/bin"
+TARBALL="$(mktemp -t node.XXXXXX.tar.gz)"
+curl -fsSL "https://nodejs.org/dist/${NODE_VER}/${NODE_PKG}.tar.gz" -o "$TARBALL"
+# The darwin `node` binary is self-contained; ship just it.
+tar -xzf "$TARBALL" -C "$DEST/node/bin" --strip-components=2 "${NODE_PKG}/bin/node"
+rm -f "$TARBALL"
+chmod +x "$DEST/node/bin/node"
+"$DEST/node/bin/node" --version >/dev/null && echo "[bundle-engine] bundled node OK"
+
 echo "[bundle-engine] done -> $DEST"

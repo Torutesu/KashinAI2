@@ -94,9 +94,15 @@ fn spawn_engine(app: &tauri::AppHandle) -> Result<Child, String> {
         .map_err(|e| format!("app_data_dir: {e}"))?;
     std::fs::create_dir_all(&data_dir).map_err(|e| format!("create data dir: {e}"))?;
 
-    let node = find_node().ok_or_else(|| {
-        "Node.js was not found. Install Node 22+ (e.g. `brew install node`) and relaunch.".to_string()
-    })?;
+    // Prefer the Node runtime bundled inside the app; fall back to a system node.
+    let bundled_node = engine_dir.join("node").join("bin").join("node");
+    let node = if bundled_node.exists() {
+        bundled_node
+    } else {
+        find_node().ok_or_else(|| {
+            "Node.js was not found. Install Node 22+ (e.g. `brew install node`) and relaunch.".to_string()
+        })?
+    };
 
     let token = ensure_token(&data_dir);
     let db_url = format!("file:{}", data_dir.join("kashinai.db").display());
