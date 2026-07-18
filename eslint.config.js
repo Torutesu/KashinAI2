@@ -10,7 +10,7 @@ const globals = require('globals');
 
 module.exports = tseslint.config(
   {
-    ignores: ['dist/**', 'node_modules/**', 'lancedb/**', 'prisma/**', 'coverage/**', 'public/**', '*.config.js'],
+    ignores: ['dist/**', 'node_modules/**', 'lancedb/**', 'prisma/**', 'coverage/**', 'public/**', 'desktop/**', '*.config.js'],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
