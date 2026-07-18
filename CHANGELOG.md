@@ -10,6 +10,10 @@ All notable changes to KashinAI2 are documented here. This project follows
   `Release` workflow that, on a `vX.Y.Z` tag push, verifies the tag matches
   `package.json`, creates a GitHub Release with notes from this changelog, and
   builds + pushes a container image to `ghcr.io`.
+- **Fly.io continuous deployment**: `fly.toml` (persistent volume for SQLite +
+  LanceDB, health checks, auto stop/start) and a `Deploy` workflow that ships to
+  Fly.io after CI passes on `main`. LanceDB's path is now configurable via
+  `LANCEDB_PATH` so it can live on the volume. See `DEPLOY.md`.
 
 ## [1.7.0] - 2026-07-18
 

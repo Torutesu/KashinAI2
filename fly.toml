@@ -1,0 +1,42 @@
+# fly.toml — Fly.io deployment for the KashinAI2 backend + dashboard.
+#
+# One-time setup (from a machine with flyctl + a Fly account):
+#   fly launch --no-deploy            # or `fly apps create kashinai2`
+#   fly volume create kashinai_data --region nrt --size 1
+#   fly secrets set GEMINI_API_KEY=... API_TOKEN=...   # never commit these
+#   fly deploy                        # first manual deploy
+# Thereafter, pushes to `main` auto-deploy via .github/workflows/deploy.yml.
+
+app = "kashinai2"
+primary_region = "nrt" # Tokyo
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+  PORT = "3001"
+  # DB + vector store live on the mounted volume so they survive restarts.
+  DATABASE_URL = "file:/data/prod.db"
+  LANCEDB_PATH = "/data/lancedb"
+  # Publicly exposed → token-gate the read routes too.
+  REQUIRE_AUTH_ALL = "true"
+
+# Persistent volume for SQLite + LanceDB (and google_token.json if used).
+[[mounts]]
+  source = "kashinai_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 3001
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    interval = "15s"
+    timeout = "2s"
+    grace_period = "10s"
+    method = "get"
+    path = "/health"

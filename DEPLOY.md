@@ -1,4 +1,39 @@
-# Deploying KashinAI2 with a public URL (Cloudflare Tunnel)
+# Deploying KashinAI2
+
+Two supported paths: **Fly.io** (managed host + CI/CD, recommended for a shared
+testing URL) and a **Cloudflare Tunnel** in front of a machine you run yourself.
+
+---
+
+## Fly.io (managed, with CI/CD)
+
+`fly.toml` and `.github/workflows/deploy.yml` are included. A persistent volume
+holds the SQLite DB and LanceDB index; `main` auto-deploys after CI passes.
+
+One-time setup (needs the [flyctl CLI](https://fly.io/docs/flyctl/install/) and a Fly account):
+
+```bash
+fly launch --no-deploy               # creates/claims the app (keep the name in fly.toml)
+fly volume create kashinai_data --region nrt --size 1
+fly secrets set GEMINI_API_KEY=...   # required for /chat
+fly secrets set API_TOKEN=...        # required — token for state-changing + (public) read routes
+fly deploy                           # first manual deploy
+```
+
+Then add a **`FLY_API_TOKEN`** repo secret (GitHub → Settings → Secrets → Actions)
+created with `fly tokens create deploy`. After that, every push to `main` that
+passes CI auto-deploys via the Deploy workflow.
+
+Notes:
+- `REQUIRE_AUTH_ALL=true` is set in `fly.toml`, so read routes are token-gated —
+  set `API_TOKEN` before exposing it.
+- Migrations run automatically on container start (`prisma migrate deploy`).
+- The local ML stack (`sharp`) builds in the Docker image; if it can't, the app
+  still boots and serves everything except vector search / voice.
+
+---
+
+## Cloudflare Tunnel (self-hosted, public URL)
 
 KashinAI2 is a stateful local-first service (SQLite, LanceDB, a local embedding
 model, optional Playwright/OS collectors). It **cannot** run on Cloudflare
