@@ -3,6 +3,16 @@
 All notable changes to KashinAI2 are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- **Desktop signing/notarization wiring**: the macOS CI workflow imports an Apple
+  signing certificate and signs + notarizes the build automatically when the
+  `APPLE_*` repo secrets are present (unsigned otherwise). Added
+  `entitlements.plist` (JIT / executable memory / disabled library validation) so
+  the bundled Node runtime and native modules run under the hardened runtime.
+  See `desktop/README.md` → "Signing & notarization".
+
 ## [1.9.0] - 2026-07-18
 
 ### Changed

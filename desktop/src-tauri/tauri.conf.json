@@ -35,7 +35,8 @@
       "resources/engine": "engine"
     },
     "macOS": {
-      "minimumSystemVersion": "10.15"
+      "minimumSystemVersion": "10.15",
+      "entitlements": "entitlements.plist"
     }
   }
 }

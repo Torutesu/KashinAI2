@@ -1,8 +1,16 @@
 name: Desktop (macOS)
 
-# Build the macOS desktop app. Runs on a version tag or manually. The artifact
-# is UNSIGNED — add APPLE_CERTIFICATE / notarization secrets and the matching
-# tauri signing config to distribute outside your own machine.
+# Build the macOS desktop app on a version tag or manual dispatch.
+#
+# SIGNING + NOTARIZATION are automatic when these repo secrets are set (all
+# optional — without them the build still runs, just UNSIGNED):
+#   APPLE_CERTIFICATE           base64 of your "Developer ID Application" .p12
+#   APPLE_CERTIFICATE_PASSWORD  password for that .p12
+#   APPLE_SIGNING_IDENTITY      e.g. "Developer ID Application: Name (TEAMID)"
+#   APPLE_ID                    your Apple ID email (for notarization)
+#   APPLE_PASSWORD              an app-specific password (appleid.apple.com)
+#   APPLE_TEAM_ID               your 10-char Team ID
+# See desktop/README.md → "Signing & notarization" for how to create these.
 
 on:
   workflow_dispatch:
@@ -13,6 +21,13 @@ on:
 jobs:
   build-macos:
     runs-on: macos-latest
+    env:
+      APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
     steps:
       - uses: actions/checkout@v4
 
@@ -22,6 +37,21 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
 
+      # Import the signing certificate into a temporary keychain (only when a
+      # certificate secret is present). The keychain is discarded with the runner.
+      - name: Import Apple signing certificate
+        if: ${{ env.APPLE_CERTIFICATE != '' }}
+        run: |
+          KEYCHAIN_PASSWORD="ci-$RANDOM-$RANDOM"
+          echo "$APPLE_CERTIFICATE" | base64 --decode > /tmp/cert.p12
+          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security set-keychain-settings -t 3600 -u build.keychain
+          security import /tmp/cert.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+          rm -f /tmp/cert.p12
+
       - name: Install Tauri CLI
         working-directory: desktop
         run: npm install
@@ -30,6 +60,8 @@ jobs:
         working-directory: desktop
         run: npm run icon
 
+      # `tauri build` signs when APPLE_SIGNING_IDENTITY is set, and notarizes when
+      # APPLE_ID / APPLE_PASSWORD / APPLE_TEAM_ID are also set. Empty → unsigned.
       - name: Bundle engine + build app
         working-directory: desktop
         run: npm run build
