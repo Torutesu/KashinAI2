@@ -32,11 +32,20 @@
     <script>
       const PORT = 3001;
       const status = document.getElementById('status');
+      // Ask the native app for the engine token so the dashboard's management
+      // features (API keys, etc.) work without the user finding the token file.
+      async function tokenQuery() {
+        try {
+          const t = await window.__TAURI__.core.invoke('engine_token');
+          if (t) return '?token=' + encodeURIComponent(t);
+        } catch (_) { /* not in Tauri, or command unavailable */ }
+        return '';
+      }
       async function waitForEngine() {
         for (let i = 0; i < 90; i++) {
           try {
             const r = await fetch(`http://localhost:${PORT}/health`, { cache: 'no-store' });
-            if (r.ok) { window.location.href = `http://localhost:${PORT}/`; return; }
+            if (r.ok) { window.location.href = `http://localhost:${PORT}/${await tokenQuery()}`; return; }
           } catch (_) { /* not up yet */ }
           if (i === 5) status.textContent = 'Warming up the model and database…';
           if (i === 30) status.textContent = 'Still starting (first run downloads the embedding model)…';

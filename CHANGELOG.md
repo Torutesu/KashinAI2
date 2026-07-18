@@ -6,6 +6,11 @@ All notable changes to KashinAI2 are documented here. This project follows
 ## [Unreleased]
 
 ### Added
+- **Desktop: dashboard works out of the box** — the app now passes the engine's
+  auto-generated API token to the dashboard on launch (an `engine_token` Tauri
+  command + the loader appends `?token=`, which the dashboard captures into
+  localStorage and strips from the URL). No more hunting for `token.txt` to use
+  the API-keys / management panels.
 - **Desktop signing/notarization wiring**: the macOS CI workflow imports an Apple
   signing certificate and signs + notarizes the build automatically when the
   `APPLE_*` repo secrets are present (unsigned otherwise). Added

@@ -38,10 +38,11 @@ npm run build               # produces src-tauri/target/release/bundle/dmg/*.dmg
 ## Configuration at runtime
 
 The engine reads its usual env vars. On first launch a stable `API_TOKEN` is
-generated and stored in the app-data dir. To use `/chat`, set your Gemini key
-**right in the dashboard** — the "API keys" panel (enter the app's token first,
-shown once you paste `API_TOKEN`) saves it to the app-data settings store and
-applies it without a restart. No env editing required.
+generated in the app-data dir, and the app **passes it to the dashboard
+automatically** (the loader reads it via a `engine_token` command and hands it to
+the page), so management features work out of the box — no token hunting. To use
+`/chat`, just open the "API keys" panel and paste your Gemini key; it's saved to
+the app-data settings store and applied without a restart.
 
 ## CI
 
