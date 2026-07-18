@@ -3,7 +3,7 @@
 All notable changes to KashinAI2 are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.8.0] - 2026-07-18
 
 ### Added
 - **API keys in the dashboard** (`GET`/`PUT /settings/keys`, token-gated): set the
