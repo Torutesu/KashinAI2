@@ -1,6 +1,6 @@
 {
   "name": "kashinai2-desktop",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "private": true,
   "description": "KashinAI2 macOS desktop app (Tauri) — bundles the local engine.",
   "scripts": {

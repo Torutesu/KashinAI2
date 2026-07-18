@@ -3,7 +3,7 @@
 All notable changes to KashinAI2 are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.9.0] - 2026-07-18
 
 ### Changed
 - **Desktop app bundles a Node runtime**: `bundle-engine.sh` now downloads the

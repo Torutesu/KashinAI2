@@ -1,6 +1,6 @@
 [package]
 name = "kashinai2-desktop"
-version = "1.8.0"
+version = "1.9.0"
 description = "KashinAI2 desktop app"
 authors = ["Torutesu"]
 edition = "2021"
