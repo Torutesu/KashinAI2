@@ -30,7 +30,10 @@ multi-step loop, and **per-session multi-turn conversation history**.
 ### Action layer
 Local: open URLs, create directories, open files in VS Code, browser
 automation (Playwright). Cloud: Slack, Gmail, Google Calendar, GitHub, Notion,
-Google Drive (read), Jira, Linear, Telegram, Discord.
+Google Drive (read + create/update/append Docs), Jira, Linear, Telegram, Discord.
+Notifications fan out to every configured channel via a single `notify` tool
+(scope with `NOTIFY_CHANNELS`), rendered in each channel's native style with an
+optional title/severity.
 **Destructive actions require an explicit yes/no confirmation.**
 
 ### Security & privacy
@@ -105,8 +108,8 @@ Then fill it in. Key variables (see `.env.example` for the full list):
 
 ## Google OAuth setup
 
-1. In Google Cloud Console, create a project and enable the **Gmail API** and
-   **Google Calendar API**.
+1. In Google Cloud Console, create a project and enable the **Gmail API**,
+   **Google Calendar API**, and **Google Drive API**.
 2. Configure the OAuth consent screen and add yourself as a test user.
 3. Create an OAuth Client ID of type **Desktop Application**, download it, and
    save it as `google_credentials.json` in the project root (or point
@@ -118,7 +121,9 @@ Then fill it in. Key variables (see `.env.example` for the full list):
    ```
 
    This writes `google_token.json`. The backend then auto-refreshes and
-   persists the access token as needed.
+   persists the access token as needed. The granted scopes cover Gmail,
+   Calendar, Drive read (`drive.readonly`), and Drive write (`drive.file` —
+   app-created files only); re-run this after upgrading to grant new scopes.
 
 ---
 
@@ -139,15 +144,24 @@ Server runs on `http://localhost:3001`.
 State-changing routes (`/chat`, `/actions/execute`, `/memory/store`,
 `/voice/query`) require the `x-api-token` header (or `Authorization: Bearer …`)
 when `API_TOKEN` is set. Pass an optional `x-session-id` header on `/chat` and
-`/voice/query` to keep separate conversation histories.
+`/voice/query` to keep separate conversation histories — histories are also
+namespaced per authenticated device, so devices sharing a session id stay
+separate. Set `REQUIRE_AUTH_ALL=true` to additionally token-gate the read routes
+(for public/Cloudflare deployment).
 
 ```
 GET  /                         # read-only monitoring dashboard (HTML)
 GET  /health
 GET  /ready                    # readiness probe (503 until vector DB ready)
 GET  /metrics                  # Prometheus counters
+GET  /metrics/history          # sampled counter time series (dashboard graph)
 GET  /version                  # { name, version }
 GET  /devices                  # device labels (auth; never the secrets)
+GET  /integrations/status      # which integrations are configured (auth; booleans only)
+GET  /settings/privacy         # capture exclude-list (auth)
+PUT  /settings/privacy         { captureExcludeApps }  (auth)
+GET  /actions/history          # recent action log (auth)
+POST /memory/clear             { source }  (auth)
 GET  /context/current
 GET  /context/recent?limit=10
 GET  /memory/search?query=<q>
