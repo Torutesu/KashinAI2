@@ -95,7 +95,7 @@ export class SelectedTextCollector implements Collector {
   /** Write text to the clipboard via stdin (no shell — value never hits a command line). */
   private writeClipboard(platform: NodeJS.Platform, text: string): Promise<void> {
     let cmd: string;
-    let args: string[] = [];
+    const args: string[] = [];
     if (platform === 'darwin') cmd = 'pbcopy';
     else if (platform === 'win32') cmd = 'clip';
     else return Promise.resolve();

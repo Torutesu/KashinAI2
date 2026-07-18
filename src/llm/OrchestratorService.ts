@@ -100,7 +100,7 @@ export class OrchestratorService {
     //    Seed with the session's prior conversation so the model has context.
     const priorHistory = await this.conversationStore.load(sessionId);
     let currentPrompt = prompt;
-    let history: LLMHistoryMessage[] = [...priorHistory, { role: 'user', parts: [{ text: prompt }] }];
+    const history: LLMHistoryMessage[] = [...priorHistory, { role: 'user', parts: [{ text: prompt }] }];
     let steps = 0;
     const MAX_STEPS = 5; // Safety limit to prevent infinite loops
     let finalOutput = "";
