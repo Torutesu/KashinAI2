@@ -150,6 +150,17 @@
 
 <script>
   const $ = (id) => document.getElementById(id);
+  // The desktop app opens the dashboard with ?token=<engine token>; capture it
+  // into localStorage (then clean the URL) so management works out of the box.
+  (function () {
+    try {
+      const t = new URLSearchParams(location.search).get('token');
+      if (t) {
+        localStorage.setItem('kashinaiToken', t);
+        history.replaceState(null, '', location.pathname);
+      }
+    } catch (_) { /* ignore */ }
+  })();
   // Always attach the token if present, so the dashboard also works when the
   // backend is publicly exposed with REQUIRE_AUTH_ALL.
   async function j(url, opts) {

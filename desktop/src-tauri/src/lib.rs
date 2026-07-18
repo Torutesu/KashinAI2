@@ -129,10 +129,23 @@ fn show_main_window(app: &tauri::AppHandle) {
     }
 }
 
+/// The engine's API token (generated on first launch). The loader passes this to
+/// the dashboard so management features work without the user hunting for the file.
+#[tauri::command]
+fn engine_token(app: tauri::AppHandle) -> String {
+    if let Ok(dir) = app.path().app_data_dir() {
+        if let Ok(t) = std::fs::read_to_string(dir.join("token.txt")) {
+            return t.trim().to_string();
+        }
+    }
+    String::new()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .manage(EngineProcess(Mutex::new(None)))
+        .invoke_handler(tauri::generate_handler![engine_token])
         .setup(|app| {
             let handle = app.handle().clone();
             match spawn_engine(&handle) {
