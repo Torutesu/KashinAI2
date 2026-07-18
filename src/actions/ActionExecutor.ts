@@ -18,6 +18,7 @@ import { LinearIntegration } from '../integrations/LinearIntegration';
 import { TelegramIntegration } from '../integrations/TelegramIntegration';
 import { DiscordIntegration } from '../integrations/DiscordIntegration';
 import { NotifyService } from '../integrations/NotifyService';
+import { NotifyScheduler } from '../integrations/NotifyScheduler';
 import { parseLevel } from '../integrations/notifyFormat';
 import { ToolResult, IntegrationError } from '../types/result';
 
@@ -37,6 +38,7 @@ export class ActionExecutor {
   private telegram: TelegramIntegration;
   private discord: DiscordIntegration;
   private notify: NotifyService;
+  private notifyScheduler: NotifyScheduler;
 
   constructor() {
     this.slack = new SlackIntegration();
@@ -52,6 +54,7 @@ export class ActionExecutor {
     this.telegram = new TelegramIntegration();
     this.discord = new DiscordIntegration();
     this.notify = new NotifyService([this.telegram, this.discord]);
+    this.notifyScheduler = new NotifyScheduler((payload) => this.notify.notify(payload));
   }
 
   /**
@@ -74,7 +77,7 @@ export class ActionExecutor {
 
   // Notification tools alert about failures themselves — never alert on their
   // own failure, or a broken channel would recurse.
-  private static readonly NOTIFY_TOOLS = new Set(['notify', 'send_telegram_message', 'send_discord_message']);
+  private static readonly NOTIFY_TOOLS = new Set(['notify', 'notify_later', 'send_telegram_message', 'send_discord_message']);
 
   /**
    * Proactively notify the user when a tool fails, if NOTIFY_ON_TOOL_FAILURE is
@@ -206,6 +209,15 @@ export class ActionExecutor {
           title: args.title !== undefined ? String(args.title) : undefined,
           level: parseLevel(args.level),
         });
+        case 'notify_later': {
+          const minutes = Number(args.delayMinutes);
+          this.notifyScheduler.schedule({
+            body: String(args.message),
+            title: args.title !== undefined ? String(args.title) : undefined,
+            level: parseLevel(args.level),
+          }, minutes * 60_000);
+          return `Scheduled a notification in ${minutes} minute(s) (${this.notifyScheduler.count()} pending).`;
+        }
         case 'send_telegram_message': return await this.telegram.sendMessage(String(args.message));
         case 'send_discord_message': return await this.discord.sendMessage(String(args.message));
 

@@ -3,6 +3,14 @@
 All notable changes to KashinAI2 are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- **Scheduled notifications** (`notify_later`): schedule a notification to fire
+  after a delay (1 minute–24 hours), e.g. "remind me in 30 minutes". Fans out to
+  the same channels as `notify` with the same title/level formatting. In-process
+  and transient — pending reminders are lost on restart.
+
 ## [1.6.0] - 2026-07-17
 
 ### Added
