@@ -34,6 +34,7 @@ const DESTRUCTIVE_TOOLS = new Set([
   'gdrive_update_file',
   'gdrive_append_file',
   'notify',
+  'notify_later',
   'send_telegram_message',
   'send_discord_message',
 ]);

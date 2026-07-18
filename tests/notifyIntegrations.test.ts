@@ -16,8 +16,21 @@ function setEnv(t: any, key: string, value: string | undefined) {
 
 test('notification tools are registered', () => {
   assert.ok(getToolDefByName('notify'));
+  assert.ok(getToolDefByName('notify_later'));
   assert.ok(getToolDefByName('send_telegram_message'));
   assert.ok(getToolDefByName('send_discord_message'));
+});
+
+test('notify_later schedules without sending immediately and reports pending count', async () => {
+  const res = await new ActionExecutor().execute('notify_later', { message: 'ping', delayMinutes: 5 });
+  assert.equal(res.ok, true);
+  assert.match(res.message, /Scheduled a notification in 5 minute\(s\) \(1 pending\)/);
+});
+
+test('notify_later rejects an out-of-range delay', async () => {
+  const res = await new ActionExecutor().execute('notify_later', { message: 'ping', delayMinutes: 0 });
+  assert.equal(res.ok, false);
+  assert.match(res.message, /1 minute and 24 hours/);
 });
 
 test('isConfigured reflects the presence of credentials', (t) => {

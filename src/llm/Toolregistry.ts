@@ -122,6 +122,7 @@ const TOOL_KEYWORDS: Record<string, string[]> = {
 
   // notify
   notify: ['notify me', 'send me a notification', 'ping me', 'alert me', 'let me know'],
+  notify_later: ['remind me in', 'notify me in', 'notify me later', 'remind me later', 'ping me in', 'in 30 minutes'],
   send_telegram_message: ['send telegram', 'telegram me', 'notify on telegram'],
   send_discord_message: ['send discord', 'discord me', 'notify on discord', 'post to discord'],
 };
@@ -668,6 +669,23 @@ export const TOOL_REGISTRY: RegisteredTool[] = [
           level: { type: 'string', enum: ['info', 'warn', 'error'], description: 'Optional severity; adds an icon' },
         },
         required: ['message'],
+      },
+    },
+  },
+  {
+    category: 'notify',
+    def: {
+      name: 'notify_later',
+      description: 'Schedule a notification to be sent after a delay (1 minute to 24 hours), e.g. "remind me in 30 minutes". Fans out to the same channels as notify.',
+      parameters: {
+        type: 'object',
+        properties: {
+          message: { type: 'string', description: 'The message body' },
+          delayMinutes: { type: 'number', description: 'Minutes from now to send (1–1440)' },
+          title: { type: 'string', description: 'Optional short headline, shown bold above the body' },
+          level: { type: 'string', enum: ['info', 'warn', 'error'], description: 'Optional severity; adds an icon' },
+        },
+        required: ['message', 'delayMinutes'],
       },
     },
   },
