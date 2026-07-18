@@ -3,6 +3,14 @@
 All notable changes to KashinAI2 are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+- **CI/CD hardening**: added an ESLint quality gate (`npm run lint`) to CI, and a
+  `Release` workflow that, on a `vX.Y.Z` tag push, verifies the tag matches
+  `package.json`, creates a GitHub Release with notes from this changelog, and
+  builds + pushes a container image to `ghcr.io`.
+
 ## [1.7.0] - 2026-07-18
 
 ### Added
