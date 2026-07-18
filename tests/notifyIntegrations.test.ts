@@ -51,6 +51,16 @@ test('notify_cancel reports a missing id', async () => {
   assert.match(res.message, /No scheduled notification with id nope/);
 });
 
+test('listScheduledNotifications exposes pending reminders for the dashboard', async () => {
+  const ex = new ActionExecutor();
+  assert.deepEqual(ex.listScheduledNotifications(), []);
+  await ex.execute('notify_later', { message: 'standup', delayMinutes: 15 });
+  const list = ex.listScheduledNotifications();
+  assert.equal(list.length, 1);
+  assert.equal(list[0].payload.body, 'standup');
+  ex.execute('notify_cancel', { id: list[0].id });
+});
+
 test('isConfigured reflects the presence of credentials', (t) => {
   setEnv(t, 'TELEGRAM_BOT_TOKEN', undefined);
   setEnv(t, 'TELEGRAM_CHAT_ID', undefined);

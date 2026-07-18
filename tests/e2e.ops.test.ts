@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import express from 'express';
 import type { Server } from 'node:http';
 import path from 'path';
-import { metricsHandler, metricsHistoryHandler, integrationStatusHandler, createReadyHandler, createVersionHandler } from '../src/routes/ops';
+import { metricsHandler, metricsHistoryHandler, integrationStatusHandler, createScheduledHandler, createReadyHandler, createVersionHandler } from '../src/routes/ops';
 import { increment, resetMetrics, snapshot } from '../src/utils/metrics';
 import { recordSample, clearSeries } from '../src/utils/metricsHistory';
 
@@ -25,6 +25,9 @@ before(async () => {
   app.get('/metrics', metricsHandler);
   app.get('/metrics/history', metricsHistoryHandler);
   app.get('/integrations/status', integrationStatusHandler);
+  app.get('/scheduled', createScheduledHandler(() => [
+    { id: 'n1', fireAt: 1234, payload: { body: 'water plants', title: 'Chore', level: 'info' } },
+  ]));
   app.get('/ready', createReadyHandler(() => ready));
   app.get('/version', createVersionHandler('9.9.9'));
   // Serve the real dashboard from ./public (cwd is the repo root under the test runner).
@@ -68,6 +71,14 @@ test('/integrations/status lists integrations with boolean configured flags', as
   const slack = body.integrations.find((i) => i.name === 'slack')!;
   assert.equal(typeof slack.configured, 'boolean');
   assert.equal(slack.requires, 'SLACK_BOT_TOKEN');
+});
+
+test('/scheduled lists pending reminders with their id/fireAt/body', async () => {
+  const res = await fetch(`${baseUrl}/scheduled`);
+  assert.equal(res.status, 200);
+  const body = (await res.json()) as { scheduled: { id: string; fireAt: number; title?: string; body: string }[] };
+  assert.equal(body.scheduled.length, 1);
+  assert.deepEqual(body.scheduled[0], { id: 'n1', fireAt: 1234, title: 'Chore', level: 'info', body: 'water plants' });
 });
 
 test('/ready reports 503 until ready, then 200', async () => {

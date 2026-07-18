@@ -12,6 +12,9 @@ All notable changes to KashinAI2 are documented here. This project follows
   and transient — pending reminders are lost on restart.
 - **Reminder management** (`notify_list`, `notify_cancel`): list the pending
   scheduled notifications (soonest first, with their ids) and cancel one by id.
+- **Scheduled reminders on the dashboard**: a token-gated `GET /scheduled`
+  endpoint and a "Scheduled reminders" panel showing pending `notify_later`
+  reminders with their id and time-to-fire.
 
 ## [1.6.0] - 2026-07-17
 
