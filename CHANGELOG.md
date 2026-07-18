@@ -3,6 +3,14 @@
 All notable changes to KashinAI2 are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+- **Desktop app bundles a Node runtime**: `bundle-engine.sh` now downloads the
+  matching Node version/arch (same ABI as the built native modules) into the
+  app, and the app prefers it over a system `node`. End users no longer need
+  Node installed; a system `node` (or `KASHINAI_NODE`) is only a fallback.
+
 ## [1.8.0] - 2026-07-18
 
 ### Added
