@@ -22,6 +22,7 @@ import { setExcludeApps } from './collectors/activeAppState';
 import { getSetting, setSetting } from './settings/settingsStore';
 import { recordAction } from './utils/actionLog';
 import { resolveSessionId } from './utils/sessionScope';
+import { loadApiKeyOverrides, setApiKey, apiKeyStatus, ApiKeyName } from './llm/apiKeys';
 import { privacyGetHandler, createPrivacyPutHandler, actionsHistoryHandler, createMemoryClearHandler } from './routes/manage';
 
 // Resolve the app version once (cwd is the project root in all run modes).
@@ -66,6 +67,10 @@ const actionExecutor = new ActionExecutor();
     const saved = await getSetting('captureExcludeApps');
     if (saved !== null) setExcludeApps(saved);
   } catch { /* keep env default */ }
+  // Restore any dashboard-set API keys (falls back to env).
+  try {
+    await loadApiKeyOverrides();
+  } catch { /* keep env keys */ }
 })();
 
 // Basic validation middleware
@@ -103,6 +108,19 @@ app.get('/settings/privacy', requireApiToken, privacyGetHandler);
 app.put('/settings/privacy', requireApiToken, createPrivacyPutHandler((v) => setSetting('captureExcludeApps', v)));
 app.get('/actions/history', requireApiToken, actionsHistoryHandler);
 app.post('/memory/clear', requireApiToken, createMemoryClearHandler((s) => memoryService.clearSource(s)));
+
+// API keys: status is booleans only (never the values); set persists + applies live.
+app.get('/settings/keys', requireApiToken, (_req: Request, res: Response) => {
+  res.json({ keys: apiKeyStatus() });
+});
+app.put('/settings/keys', requireApiToken, async (req: Request, res: Response) => {
+  const body = req.body || {};
+  const map: Record<string, ApiKeyName> = { geminiApiKey: 'GEMINI_API_KEY', openaiApiKey: 'OPENAI_API_KEY' };
+  for (const [field, name] of Object.entries(map)) {
+    if (typeof body[field] === 'string') await setApiKey(name, body[field]);
+  }
+  res.json({ keys: apiKeyStatus() });
+});
 
 // --- Context APIs (gated when publicly exposed) ---
 app.get('/context/current', requireAuthWhenPublic, async (req: Request, res: Response) => {

@@ -110,6 +110,15 @@
   </section>
 
   <section class="panel">
+    <h2>API keys</h2>
+    <div class="row">
+      <input id="geminiKey" type="password" placeholder="Gemini API key (for /chat)" />
+      <button class="act" id="saveKeys">Save</button>
+    </div>
+    <div class="note" id="keysNote">Stored locally; applied without restart. Requires token.</div>
+  </section>
+
+  <section class="panel">
     <h2>Privacy — pause capture for apps</h2>
     <div class="row">
       <input id="privacy" placeholder="e.g. 1Password,Bitwarden,Keychain" />
@@ -296,7 +305,28 @@
       : '<tr><td colspan="3" class="muted">No pending reminders.</td></tr>';
   }
 
-  function refreshManagement() { refreshPrivacy(); refreshActions(); refreshIntegrations(); refreshScheduled(); }
+  async function refreshKeys() {
+    const data = await authJson('/settings/keys');
+    const note = $('keysNote');
+    if (!data) { note.textContent = 'Enter a token to manage keys.'; return; }
+    const g = data.keys && data.keys.GEMINI_API_KEY;
+    $('geminiKey').placeholder = g ? 'Gemini API key — set ✓ (enter to replace)' : 'Gemini API key (for /chat)';
+    note.innerHTML = g ? '<span class="ok-text">Gemini key configured.</span>' : 'No Gemini key set — /chat will fail until you add one.';
+  }
+  $('saveKeys').addEventListener('click', async () => {
+    const geminiApiKey = $('geminiKey').value.trim();
+    if (!geminiApiKey) { $('keysNote').textContent = 'Enter a key first.'; return; }
+    const res = await authJson('/settings/keys', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ geminiApiKey }),
+    });
+    $('geminiKey').value = '';
+    $('keysNote').innerHTML = res ? '<span class="ok-text">Saved.</span>' : 'Save failed (check token).';
+    refreshKeys();
+  });
+
+  function refreshManagement() { refreshPrivacy(); refreshActions(); refreshIntegrations(); refreshScheduled(); refreshKeys(); }
 
   // --- metrics time-series chart (SVG polylines) ---
   const SVG_NS = 'http://www.w3.org/2000/svg';

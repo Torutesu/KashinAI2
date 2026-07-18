@@ -4,10 +4,23 @@ import { GoogleGenAI } from '@google/genai';
 import { LLMProvider, LLMResponse, LLMHistoryMessage, ToolDefinition, ToolCall } from '../types';
 
 export class GeminiProvider implements LLMProvider {
-  private ai: GoogleGenAI;
+  private ai?: GoogleGenAI;
+  private currentKey = '';
+  private readonly getKey: () => string;
 
-  constructor(apiKey: string) {
-    this.ai = new GoogleGenAI({ apiKey });
+  // Accept a static key or a resolver so a key set at runtime (dashboard) takes
+  // effect without a restart — the client is rebuilt when the key changes.
+  constructor(apiKey: string | (() => string)) {
+    this.getKey = typeof apiKey === 'function' ? apiKey : () => apiKey;
+  }
+
+  private client(): GoogleGenAI {
+    const key = this.getKey();
+    if (!this.ai || key !== this.currentKey) {
+      this.ai = new GoogleGenAI({ apiKey: key });
+      this.currentKey = key;
+    }
+    return this.ai;
   }
 
   async generateResponse(prompt: string, context: string, history: LLMHistoryMessage[], tools: ToolDefinition[]): Promise<LLMResponse> {
@@ -38,7 +51,7 @@ export class GeminiProvider implements LLMProvider {
           ? history.map((h) => ({ role: h.role === 'model' ? 'model' : 'user', parts: h.parts }))
           : [{ role: 'user', parts: [{ text: prompt }] }];
 
-      const response = await this.ai.models.generateContent({
+      const response = await this.client().models.generateContent({
         model: 'gemini-flash-latest',
         contents,
         config: {

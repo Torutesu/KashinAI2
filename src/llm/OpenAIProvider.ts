@@ -13,8 +13,13 @@ export class OpenAIProvider implements LLMProvider {
   private client: OpenAI | null = null;
   private readonly model: string;
   private readonly baseURL?: string;
+  private currentKey = '';
+  private readonly getKey: () => string;
 
-  constructor(private apiKey: string) {
+  // Accept a static key or a resolver so a key set at runtime (dashboard) takes
+  // effect without a restart — the client is rebuilt when the key changes.
+  constructor(apiKey: string | (() => string)) {
+    this.getKey = typeof apiKey === 'function' ? apiKey : () => apiKey;
     this.model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
     // OPENAI_BASE_URL points at any OpenAI-compatible server (Ollama, LM Studio,
     // vLLM, …), enabling a fully local LLM behind the same provider.
@@ -22,13 +27,15 @@ export class OpenAIProvider implements LLMProvider {
   }
 
   // Lazy so constructing the provider (e.g. in the factory/tests) never throws
-  // on a missing key — only an actual request does.
+  // on a missing key — only an actual request does. Rebuilt when the key changes.
   private getClient(): OpenAI {
-    if (!this.client) {
+    const key = this.getKey();
+    if (!this.client || key !== this.currentKey) {
       this.client = new OpenAI({
-        apiKey: this.apiKey || 'not-needed', // local servers often ignore the key
+        apiKey: key || 'not-needed', // local servers often ignore the key
         ...(this.baseURL ? { baseURL: this.baseURL } : {}),
       });
+      this.currentKey = key;
     }
     return this.client;
   }
