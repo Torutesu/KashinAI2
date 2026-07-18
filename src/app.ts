@@ -17,7 +17,7 @@ import { requireApiToken, requireAuthWhenPublic, corsOriginCheck, listDevices } 
 import { createRateLimiter } from './middleware/rateLimit';
 import { PrismaConversationStore } from './memory/PrismaConversationStore';
 import { setVSCodeLiveState } from './integrations/vscodeLiveState';
-import { metricsHandler, metricsHistoryHandler, integrationStatusHandler, createReadyHandler, createVersionHandler } from './routes/ops';
+import { metricsHandler, metricsHistoryHandler, integrationStatusHandler, createScheduledHandler, createReadyHandler, createVersionHandler } from './routes/ops';
 import { setExcludeApps } from './collectors/activeAppState';
 import { getSetting, setSetting } from './settings/settingsStore';
 import { recordAction } from './utils/actionLog';
@@ -94,6 +94,9 @@ app.get('/devices', requireApiToken, (_req: Request, res: Response) => {
 
 // Which integrations are wired up (booleans only); requires a valid token.
 app.get('/integrations/status', requireApiToken, integrationStatusHandler);
+
+// Pending scheduled notifications (from notify_later); requires a valid token.
+app.get('/scheduled', requireApiToken, createScheduledHandler(() => actionExecutor.listScheduledNotifications()));
 
 // --- Dashboard management (writes require a token) ---
 app.get('/settings/privacy', requireApiToken, privacyGetHandler);

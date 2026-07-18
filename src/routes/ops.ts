@@ -7,6 +7,7 @@ import { Request, Response } from 'express';
 import { renderPrometheus } from '../utils/metrics';
 import { getSeries } from '../utils/metricsHistory';
 import { getIntegrationStatus } from '../integrations/integrationStatus';
+import { ScheduledItem } from '../integrations/NotifyScheduler';
 
 export function metricsHandler(_req: Request, res: Response) {
   res.setHeader('Content-Type', 'text/plain; version=0.0.4');
@@ -21,6 +22,21 @@ export function metricsHistoryHandler(_req: Request, res: Response) {
 /** Which integrations are configured (booleans only — never exposes secrets). */
 export function integrationStatusHandler(_req: Request, res: Response) {
   res.json({ integrations: getIntegrationStatus() });
+}
+
+/** Pending scheduled notifications (from notify_later) for the dashboard. */
+export function createScheduledHandler(list: () => ScheduledItem[]) {
+  return (_req: Request, res: Response) => {
+    res.json({
+      scheduled: list().map((i) => ({
+        id: i.id,
+        fireAt: i.fireAt,
+        title: i.payload.title,
+        level: i.payload.level,
+        body: i.payload.body,
+      })),
+    });
+  };
 }
 
 /** Readiness probe: 200 when ready, 503 otherwise (e.g. vector DB still loading). */

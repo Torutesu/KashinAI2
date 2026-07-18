@@ -18,7 +18,7 @@ import { LinearIntegration } from '../integrations/LinearIntegration';
 import { TelegramIntegration } from '../integrations/TelegramIntegration';
 import { DiscordIntegration } from '../integrations/DiscordIntegration';
 import { NotifyService } from '../integrations/NotifyService';
-import { NotifyScheduler } from '../integrations/NotifyScheduler';
+import { NotifyScheduler, ScheduledItem } from '../integrations/NotifyScheduler';
 import { parseLevel } from '../integrations/notifyFormat';
 import { ToolResult, IntegrationError } from '../types/result';
 
@@ -55,6 +55,11 @@ export class ActionExecutor {
     this.discord = new DiscordIntegration();
     this.notify = new NotifyService([this.telegram, this.discord]);
     this.notifyScheduler = new NotifyScheduler((payload) => this.notify.notify(payload));
+  }
+
+  /** Pending scheduled notifications (for the dashboard / ops visibility). */
+  listScheduledNotifications(): ScheduledItem[] {
+    return this.notifyScheduler.list();
   }
 
   /**
