@@ -17,6 +17,8 @@ function setEnv(t: any, key: string, value: string | undefined) {
 test('notification tools are registered', () => {
   assert.ok(getToolDefByName('notify'));
   assert.ok(getToolDefByName('notify_later'));
+  assert.ok(getToolDefByName('notify_list'));
+  assert.ok(getToolDefByName('notify_cancel'));
   assert.ok(getToolDefByName('send_telegram_message'));
   assert.ok(getToolDefByName('send_discord_message'));
 });
@@ -31,6 +33,22 @@ test('notify_later rejects an out-of-range delay', async () => {
   const res = await new ActionExecutor().execute('notify_later', { message: 'ping', delayMinutes: 0 });
   assert.equal(res.ok, false);
   assert.match(res.message, /1 minute and 24 hours/);
+});
+
+test('notify_list and notify_cancel manage pending reminders', async () => {
+  const ex = new ActionExecutor();
+  assert.match((await ex.execute('notify_list', {})).message, /No scheduled notifications/);
+  await ex.execute('notify_later', { message: 'water plants', delayMinutes: 10 });
+  const list = await ex.execute('notify_list', {});
+  assert.match(list.message, /\[n1\].*water plants/);
+  const cancel = await ex.execute('notify_cancel', { id: 'n1' });
+  assert.match(cancel.message, /Cancelled scheduled notification n1/);
+  assert.match((await ex.execute('notify_list', {})).message, /No scheduled notifications/);
+});
+
+test('notify_cancel reports a missing id', async () => {
+  const res = await new ActionExecutor().execute('notify_cancel', { id: 'nope' });
+  assert.match(res.message, /No scheduled notification with id nope/);
 });
 
 test('isConfigured reflects the presence of credentials', (t) => {
