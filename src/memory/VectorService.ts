@@ -1,7 +1,9 @@
 // src/memory/VectorService.ts
 import { log } from '../utils/logger';
 import * as lancedb from '@lancedb/lancedb';
-import { pipeline } from '@xenova/transformers';
+// @xenova/transformers (and its native `sharp` dependency) is imported lazily
+// inside doInitialize() so a missing/unbuilt native binary degrades to "no
+// vector search" instead of crashing the whole server at startup.
 
 export class VectorService {
   private db: any;
@@ -28,6 +30,7 @@ export class VectorService {
     try {
       // 1. Initialize local embedding model (runs privately on CPU)
       log.info('[VectorService] Loading embedding model (first run may take a minute to download)...');
+      const { pipeline } = await import('@xenova/transformers');
       this.extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
 
       // 2. Connect to local LanceDB
