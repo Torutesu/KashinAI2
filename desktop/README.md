@@ -6,9 +6,10 @@ by hand. The engine is spawned as a child process; its data (SQLite DB, LanceDB
 index, Google token) lives in the app's data directory, and the window shows the
 usual dashboard once the engine is up. A menubar tray provides Open / Quit.
 
-> Status: **foundation scaffold.** The `.app`/`.dmg` must be built on macOS
-> (see prerequisites) — it has not been built end-to-end from the CI sandbox, so
-> expect to iterate on the first local build.
+> Status: **the Rust compiles** (`cargo check` passes) and `tauri icon` /
+> `bundle-engine.sh` are verified. The full `.app`/`.dmg` bundling step must run
+> on macOS (see prerequisites) and hasn't been exercised end-to-end yet, so
+> expect to iterate on the first macOS build.
 
 **End users need nothing preinstalled** — a matching Node runtime is bundled into
 the `.app` (the build step downloads the Node version/arch that built the native
