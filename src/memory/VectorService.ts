@@ -33,8 +33,9 @@ export class VectorService {
       const { pipeline } = await import('@xenova/transformers');
       this.extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
 
-      // 2. Connect to local LanceDB
-      this.db = await lancedb.connect('./lancedb');
+      // 2. Connect to local LanceDB (path configurable so it can live on a
+      //    persistent volume in hosted deployments, e.g. Fly.io /data).
+      this.db = await lancedb.connect(process.env.LANCEDB_PATH || './lancedb');
 
       // Check if table exists, if not, create it
       const tables = await this.db.tableNames();
