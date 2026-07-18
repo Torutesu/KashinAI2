@@ -162,6 +162,8 @@ GET  /settings/privacy         # capture exclude-list (auth)
 PUT  /settings/privacy         { captureExcludeApps }  (auth)
 GET  /actions/history          # recent action log (auth)
 POST /memory/clear             { source }  (auth)
+GET  /settings/keys            # which API keys are configured (auth; booleans only)
+PUT  /settings/keys            { geminiApiKey?, openaiApiKey? }  (auth; applied live)
 GET  /context/current
 GET  /context/recent?limit=10
 GET  /memory/search?query=<q>
