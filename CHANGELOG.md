@@ -3,7 +3,7 @@
 All notable changes to KashinAI2 are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.7.0] - 2026-07-18
 
 ### Added
 - **Scheduled notifications** (`notify_later`): schedule a notification to fire
@@ -15,6 +15,14 @@ All notable changes to KashinAI2 are documented here. This project follows
 - **Scheduled reminders on the dashboard**: a token-gated `GET /scheduled`
   endpoint and a "Scheduled reminders" panel showing pending `notify_later`
   reminders with their id and time-to-fire.
+
+### Changed
+- **Resilient startup**: the local ML stack (`@xenova/transformers` and its native
+  `sharp` dependency) is now imported lazily by the vector/embedding and Whisper
+  services instead of at module load. A missing or unbuilt native binary now
+  degrades gracefully (no vector search / no voice) instead of preventing the
+  whole server from starting — `/health`, `/chat`, actions, and notifications
+  still come up.
 
 ## [1.6.0] - 2026-07-17
 

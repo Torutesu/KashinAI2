@@ -5,7 +5,11 @@
 // every transcription request. Model choice/language are configurable via env
 // vars so you can trade off speed vs. accuracy without touching code.
 
-import { pipeline } from '@xenova/transformers';
+// NOTE: @xenova/transformers (and its native `sharp` dependency) is imported
+// lazily inside load(), NOT at module top-level. Voice is optional, so a missing
+// or unbuilt native binary must not prevent the whole server from starting — the
+// failure surfaces only when /voice is actually used (or preload() rejects, which
+// the server startup catches and warns about).
 
 type Transcriber = (audio: Float32Array, options?: Record<string, unknown>) => Promise<any>;
 
@@ -19,7 +23,10 @@ export class WhisperService {
   private static load(): Promise<Transcriber> {
     if (!this.loadingPromise) {
       console.log(`[WhisperService] Loading local Whisper model "${MODEL_ID}" (one-time)...`);
-      this.loadingPromise = pipeline('automatic-speech-recognition', MODEL_ID) as unknown as Promise<Transcriber>;
+      this.loadingPromise = (async () => {
+        const { pipeline } = await import('@xenova/transformers');
+        return (await pipeline('automatic-speech-recognition', MODEL_ID)) as unknown as Transcriber;
+      })();
       this.loadingPromise.then(
         () => console.log('[WhisperService] Model loaded and ready.'),
         (err) => console.error('[WhisperService] Failed to load model:', err)
