@@ -218,6 +218,23 @@ export class ActionExecutor {
           }, minutes * 60_000);
           return `Scheduled a notification in ${minutes} minute(s) (${this.notifyScheduler.count()} pending).`;
         }
+        case 'notify_list': {
+          const items = this.notifyScheduler.list();
+          if (!items.length) return 'No scheduled notifications.';
+          return items
+            .map((i) => {
+              const mins = Math.max(0, Math.round((i.fireAt - Date.now()) / 60_000));
+              const label = i.payload.title ? `${i.payload.title}: ${i.payload.body}` : i.payload.body;
+              return `- [${i.id}] in ~${mins} min: ${label}`;
+            })
+            .join('\n');
+        }
+        case 'notify_cancel': {
+          const id = String(args.id);
+          return this.notifyScheduler.cancel(id)
+            ? `Cancelled scheduled notification ${id}.`
+            : `No scheduled notification with id ${id}.`;
+        }
         case 'send_telegram_message': return await this.telegram.sendMessage(String(args.message));
         case 'send_discord_message': return await this.discord.sendMessage(String(args.message));
 

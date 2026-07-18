@@ -123,6 +123,8 @@ const TOOL_KEYWORDS: Record<string, string[]> = {
   // notify
   notify: ['notify me', 'send me a notification', 'ping me', 'alert me', 'let me know'],
   notify_later: ['remind me in', 'notify me in', 'notify me later', 'remind me later', 'ping me in', 'in 30 minutes'],
+  notify_list: ['list reminders', 'my reminders', 'scheduled notifications', 'pending reminders', 'what reminders'],
+  notify_cancel: ['cancel reminder', 'cancel the reminder', 'remove reminder', 'delete reminder', 'cancel notification'],
   send_telegram_message: ['send telegram', 'telegram me', 'notify on telegram'],
   send_discord_message: ['send discord', 'discord me', 'notify on discord', 'post to discord'],
 };
@@ -687,6 +689,22 @@ export const TOOL_REGISTRY: RegisteredTool[] = [
         },
         required: ['message', 'delayMinutes'],
       },
+    },
+  },
+  {
+    category: 'notify',
+    def: {
+      name: 'notify_list',
+      description: 'List the currently pending scheduled notifications (from notify_later), soonest first.',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    category: 'notify',
+    def: {
+      name: 'notify_cancel',
+      description: 'Cancel a pending scheduled notification by its id (as shown by notify_list).',
+      parameters: { type: 'object', properties: { id: { type: 'string', description: 'The scheduled notification id, e.g. "n1"' } }, required: ['id'] },
     },
   },
   {

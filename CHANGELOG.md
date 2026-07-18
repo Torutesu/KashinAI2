@@ -10,6 +10,8 @@ All notable changes to KashinAI2 are documented here. This project follows
   after a delay (1 minute–24 hours), e.g. "remind me in 30 minutes". Fans out to
   the same channels as `notify` with the same title/level formatting. In-process
   and transient — pending reminders are lost on restart.
+- **Reminder management** (`notify_list`, `notify_cancel`): list the pending
+  scheduled notifications (soonest first, with their ids) and cancel one by id.
 
 ## [1.6.0] - 2026-07-17
 
