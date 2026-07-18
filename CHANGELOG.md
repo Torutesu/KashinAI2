@@ -5,6 +5,13 @@ All notable changes to KashinAI2 are documented here. This project follows
 
 ## [Unreleased]
 
+### Added
+- **macOS desktop app (Tauri) — foundation** (`desktop/`): a native shell that
+  bundles the Node engine as a resource, spawns it on launch (data in the app's
+  data dir), shows the dashboard once it's up, and adds a menubar tray
+  (Open / Quit). Includes an engine-bundling script and a `macos-latest` CI build
+  (unsigned) on tag / manual dispatch. Must be built on macOS; see `desktop/README.md`.
+
 ### Changed
 - **CI/CD hardening**: added an ESLint quality gate (`npm run lint`) to CI, and a
   `Release` workflow that, on a `vX.Y.Z` tag push, verifies the tag matches

@@ -1,0 +1,16 @@
+{
+  "name": "kashinai2-desktop",
+  "version": "1.7.0",
+  "private": true,
+  "description": "KashinAI2 macOS desktop app (Tauri) — bundles the local engine.",
+  "scripts": {
+    "bundle-engine": "bash scripts/bundle-engine.sh",
+    "icon": "tauri icon src-tauri/icons/app-icon.png",
+    "tauri": "tauri",
+    "dev": "npm run icon && npm run bundle-engine && tauri dev",
+    "build": "npm run icon && npm run bundle-engine && tauri build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2"
+  }
+}
